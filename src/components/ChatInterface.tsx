@@ -8,7 +8,7 @@ import {
   Search, Globe, Settings, Share2, Download, 
   Sparkles, Zap, BrainCircuit, CheckCircle2,
   ChevronDown, Paperclip, Wand2, Brain, History, Copy,
-  Menu, FileJson, FileText, MicOff, Volume2
+  Menu, FileJson, FileText, MicOff, Volume2, XCircle
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "./ui/button.tsx";
@@ -91,10 +91,12 @@ export default function ChatInterface({ setIsSidebarOpen }: ChatInterfaceProps) 
     const reader = new FileReader();
     reader.onload = (event) => {
       const content = event.target?.result as string;
-      setInput(prev => prev + "\n\nFile Content:\n" + content);
+      setAttachedFile({ name: file.name, content });
       toast.success(`File "${file.name}" attached`);
     };
     reader.readAsText(file);
+    // Reset input value to allow re-uploading the same file
+    e.target.value = "";
   };
 
   const modelOptions = [
@@ -105,15 +107,20 @@ export default function ChatInterface({ setIsSidebarOpen }: ChatInterfaceProps) 
   ];
   const [isTyping, setIsTyping] = useState(false);
   const [streamingContent, setStreamingContent] = useState("");
+  const [attachedFile, setAttachedFile] = useState<{ name: string; content: string } | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showScrollButton, setShowScrollButton] = useState(false);
+
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [chatTitle, setChatTitle] = useState("New Chat");
 
   useEffect(() => {
     if (id) {
       fetchChat();
     } else {
       setMessages([]);
+      setChatTitle("New Chat");
     }
   }, [id]);
 
@@ -125,9 +132,22 @@ export default function ChatInterface({ setIsSidebarOpen }: ChatInterfaceProps) 
     try {
       const res = await api.get(`/chat/${id}`);
       setMessages(res.data.messages);
+      setChatTitle(res.data.title || "New Chat");
     } catch (err) {
       console.error(err);
       navigate("/");
+    }
+  };
+
+  const handleRename = async () => {
+    if (!id || !chatTitle.trim()) return;
+    try {
+      await api.patch(`/chat/${id}`, { title: chatTitle });
+      setIsEditingTitle(false);
+      toast.success("Chat renamed");
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to rename chat");
     }
   };
 
@@ -152,6 +172,10 @@ export default function ChatInterface({ setIsSidebarOpen }: ChatInterfaceProps) 
     if (!finalInput.trim() || isTyping) return;
 
     let processedInput = finalInput;
+    if (attachedFile) {
+      processedInput = `File: ${attachedFile.name}\nContent:\n${attachedFile.content}\n\nUser Question: ${finalInput}`;
+    }
+
     if (isResearchMode) {
       processedInput = `[DEEP RESEARCH MODE] Please provide a comprehensive, detailed analysis with citations and multiple perspectives on: ${finalInput}`;
     } else if (isCreativeMode) {
@@ -166,6 +190,7 @@ export default function ChatInterface({ setIsSidebarOpen }: ChatInterfaceProps) 
     setMessages(displayMessages);
     
     setInput("");
+    setAttachedFile(null);
     setIsTyping(true);
     setStreamingContent("");
     setIsResearchMode(false);
@@ -270,31 +295,54 @@ export default function ChatInterface({ setIsSidebarOpen }: ChatInterfaceProps) 
           >
             <Menu size={20} />
           </Button>
-          <div className="w-6 h-6 bg-brand/10 rounded flex items-center justify-center text-brand">
+          <div className="w-6 h-6 bg-brand/10 rounded flex items-center justify-center text-brand shrink-0">
             <Sparkles size={14} />
           </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="gap-2 px-2 h-8 hover:bg-slate-100">
-                <span className="text-sm font-semibold text-slate-700">
-                  {modelOptions.find(m => m.id === selectedModel)?.name}
-                </span>
-                <ChevronDown size={14} className="text-slate-400" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-56 rounded-xl">
-              {modelOptions.map((opt) => (
-                <DropdownMenuItem 
-                  key={opt.id} 
-                  onClick={() => setSelectedModel(opt.id)}
-                  className="gap-3 rounded-lg py-2"
-                >
-                  <opt.icon size={16} className="text-brand" />
-                  <span className="text-sm">{opt.name}</span>
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <div className="flex items-center gap-2 overflow-hidden">
+            {isEditingTitle ? (
+              <input
+                autoFocus
+                value={chatTitle}
+                onChange={(e) => setChatTitle(e.target.value)}
+                onBlur={handleRename}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleRename();
+                  if (e.key === "Escape") setIsEditingTitle(false);
+                }}
+                className="bg-transparent border-b border-brand text-sm font-bold text-slate-800 outline-none w-32 md:w-48"
+              />
+            ) : (
+              <h2 
+                className="text-sm font-bold text-slate-800 truncate cursor-pointer hover:text-brand transition-colors max-w-[120px] md:max-w-[200px]"
+                onClick={() => id && setIsEditingTitle(true)}
+              >
+                {chatTitle}
+              </h2>
+            )}
+            <div className="h-4 w-[1px] bg-slate-200 mx-1" />
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="gap-2 px-2 h-8 hover:bg-slate-100 shrink-0">
+                  <span className="text-xs font-semibold text-slate-500">
+                    {modelOptions.find(m => m.id === selectedModel)?.name.split(" ")[1]}
+                  </span>
+                  <ChevronDown size={12} className="text-slate-400" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-56 rounded-xl">
+                {modelOptions.map((opt) => (
+                  <DropdownMenuItem 
+                    key={opt.id} 
+                    onClick={() => setSelectedModel(opt.id)}
+                    className="gap-3 rounded-lg py-2"
+                  >
+                    <opt.icon size={16} className="text-brand" />
+                    <span className="text-sm">{opt.name}</span>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           {messages.length > 0 && (
@@ -618,8 +666,20 @@ export default function ChatInterface({ setIsSidebarOpen }: ChatInterfaceProps) 
           </div>
           <div className="flex items-center justify-between mt-4 px-2">
             <div className="flex items-center gap-2 text-[11px] text-slate-400 font-medium">
-              <Sparkles size={12} className="text-brand" />
-              <span>Saved prompts</span>
+              {attachedFile ? (
+                <div className="flex items-center gap-2 bg-brand/5 text-brand px-2 py-1 rounded-lg border border-brand/10">
+                  <FileText size={12} />
+                  <span className="truncate max-w-[100px]">{attachedFile.name}</span>
+                  <button onClick={() => setAttachedFile(null)} className="hover:text-red-500">
+                    <XCircle size={12} />
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <Sparkles size={12} className="text-brand" />
+                  <span>Saved prompts</span>
+                </>
+              )}
             </div>
             <Button variant="ghost" size="sm" className="h-7 rounded-lg text-[11px] text-slate-500 gap-1.5 border border-slate-200 relative overflow-hidden">
               <Paperclip size={12} />
