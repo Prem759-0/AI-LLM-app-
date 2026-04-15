@@ -1,0 +1,6 @@
+{
+  "name": "Cortex AI",
+  "description": "Premium AI chat experience with real-time streaming and advanced model selection.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["Chat", "Image Generation", "Voice Input"]
+}
