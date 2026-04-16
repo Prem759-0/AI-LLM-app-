@@ -446,7 +446,7 @@ export default function ChatInterface({ setIsSidebarOpen }: ChatInterfaceProps) 
                 className="flex items-center gap-1.5 cursor-pointer group/title min-w-0"
                 onClick={() => id && setIsEditingTitle(true)}
               >
-                <h2 className="text-sm md:text-base font-black text-slate-800 truncate tracking-tight group-hover/title:text-brand transition-colors uppercase italic tracking-tighter pr-8 max-w-[150px] sm:max-w-[250px] md:max-w-md">
+                <h2 className="text-sm md:text-base font-black text-slate-800 truncate tracking-tight group-hover/title:text-brand transition-colors uppercase italic tracking-tighter pr-4 max-w-[150px] sm:max-w-[250px] md:max-w-md">
                   {id ? chatTitle : "Neural Genesis"}
                 </h2>
                 {id && <Crown size={10} className="text-amber-500 shrink-0" />}
@@ -476,6 +476,67 @@ export default function ChatInterface({ setIsSidebarOpen }: ChatInterfaceProps) 
         </div>
 
         <div className="flex items-center gap-2 ml-4 shrink-0">
+          <Dialog>
+            <DialogTrigger render={
+              <Button variant="ghost" size="icon" className="h-10 w-10 text-slate-500 hover:text-brand rounded-xl border-2 border-slate-100 sm:flex hidden">
+                <Settings size={20} />
+              </Button>
+            } />
+            <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto rounded-[2rem] p-0 border-none shadow-2xl">
+              <div className="p-8">
+                <DialogHeader className="mb-8">
+                  <DialogTitle className="text-3xl font-black text-slate-900 flex items-center gap-4 tracking-tighter">
+                    <div className="w-12 h-12 bg-brand rounded-2xl flex items-center justify-center text-white shadow-lg shadow-brand/20">
+                      <Settings size={24} />
+                    </div>
+                    System Settings
+                  </DialogTitle>
+                </DialogHeader>
+                <div className="space-y-10">
+                  <section>
+                    <div className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6">
+                      <Brain size={12} className="text-brand" />
+                      Neural Preferences
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="p-5 rounded-3xl bg-slate-50 border border-slate-100 hover:border-brand/20 transition-all group">
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-sm font-black text-slate-700 tracking-tight">Aura Streaming</span>
+                          <div className="w-10 h-5 bg-brand rounded-full relative shadow-inner"><div className="absolute right-1 top-1 w-3 h-3 bg-white rounded-full shadow-sm" /></div>
+                        </div>
+                        <p className="text-[10px] text-slate-500 font-bold leading-relaxed opacity-70">Enable real-time response generation for near-instant feedback.</p>
+                      </div>
+                      <div className="p-5 rounded-3xl bg-slate-50 border border-slate-100 hover:border-brand/20 transition-all opacity-60">
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-sm font-black text-slate-700 tracking-tight">Deep Inquiry</span>
+                          <div className="w-10 h-5 bg-slate-300 rounded-full relative shadow-inner" />
+                        </div>
+                        <p className="text-[10px] text-amber-600 font-black uppercase tracking-widest mt-1">Pro Feature</p>
+                      </div>
+                    </div>
+                  </section>
+                  <section>
+                    <div className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6">
+                      <Zap size={12} className="text-amber-500" />
+                      Visual Theme
+                    </div>
+                    <div className="flex gap-4">
+                      {['light', 'dark', 'system'].map(t => (
+                        <Button key={t} variant="outline" className="flex-1 rounded-2xl font-black capitalize text-[10px] tracking-widest h-14 border-slate-100 hover:border-brand/30 hover:bg-brand/5 shadow-sm">
+                          {t}
+                        </Button>
+                      ))}
+                    </div>
+                  </section>
+                  <div className="pt-6 border-t border-slate-100">
+                    <Button className="w-full bg-slate-900 hover:bg-slate-800 text-white rounded-2xl h-14 font-black shadow-xl" onClick={() => navigate("/settings")}>
+                      Advanced Configuration
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="sm" className="hidden sm:flex rounded-xl gap-2 font-black text-[10px] uppercase tracking-widest text-slate-500 hover:bg-slate-100 px-4 border-2 border-slate-100 h-10">
@@ -537,7 +598,7 @@ export default function ChatInterface({ setIsSidebarOpen }: ChatInterfaceProps) 
               </motion.div>
               
               <div className="space-y-4">
-                <h1 className="text-4xl md:text-6xl font-black text-slate-900 tracking-tighter uppercase italic">
+                <h1 className="text-4xl md:text-6xl font-black text-slate-900 tracking-tighter uppercase italic pr-4">
                   Neural <span className="brand-text-gradient">Genesis</span>
                 </h1>
                 <p className="text-lg md:text-xl text-slate-400 font-medium leading-relaxed">

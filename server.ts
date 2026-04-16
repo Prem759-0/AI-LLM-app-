@@ -31,10 +31,21 @@ async function startServer() {
 
   app.use(express.json());
 
+  // Logging middleware for debugging routes
+  app.use((req, res, next) => {
+    if (req.path.startsWith("/api")) {
+      console.log(`[API] ${req.method} ${req.path}`);
+    }
+    next();
+  });
+
   // API Routes
   app.use("/api/auth", authRoutes);
   app.use("/api/chat", chatRoutes);
   app.use("/api/ai", aiRoutes);
+
+  // Serve a dummy favicon if missing to prevent 404 clutter
+  app.get("/favicon.ico", (req, res) => res.status(204).end());
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {

@@ -28,7 +28,9 @@ export default function AuthPage() {
       toast.success(isLogin ? "Welcome back!" : "Account created successfully!");
       navigate("/");
     } catch (err: any) {
-      const errorMsg = err.response?.data?.error || "Something went wrong";
+      console.error("Auth Error:", err);
+      const rawError = err.response?.data?.error || err.message || "Something went wrong";
+      const errorMsg = typeof rawError === 'object' ? JSON.stringify(rawError) : String(rawError);
       toast.error(errorMsg);
     } finally {
       setLoading(false);

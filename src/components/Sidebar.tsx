@@ -151,7 +151,7 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
             <div className="absolute inset-0 bg-gradient-to-tr from-brand to-indigo-500 opacity-100" />
             <Sparkles size={20} className="relative z-10 group-hover:scale-110 transition-transform" />
           </div>
-          <span className={cn("font-black text-xl text-slate-800 tracking-tighter uppercase italic truncate pr-2", !isOpen && "md:hidden")}>Cortex</span>
+          <span className={cn("font-black text-xl text-slate-800 tracking-tighter uppercase italic truncate pr-4", !isOpen && "md:hidden")}>Cortex</span>
         </Link>
         <Button 
           variant="ghost" 
@@ -159,10 +159,10 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
           onClick={() => setIsOpen(!isOpen)}
           className={cn(
             "text-slate-500 hover:bg-white hover:text-brand shadow-sm rounded-xl transition-all border border-slate-100", 
-            !isOpen ? "md:rotate-180 md:mx-auto" : ""
+            !isOpen ? "md:mx-auto" : ""
           )}
         >
-          <PanelLeft size={20} />
+          {isOpen ? <PanelLeftClose size={20} /> : <PanelLeftOpen size={20} />}
         </Button>
       </div>
 
