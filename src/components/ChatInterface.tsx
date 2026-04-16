@@ -18,6 +18,9 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, 
   DropdownMenuTrigger 
 } from "./ui/dropdown-menu.tsx";
+import { 
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger 
+} from "./ui/dialog.tsx";
 import { useAuth } from "../App.tsx";
 import api from "../lib/api.ts";
 import { cn } from "../lib/utils.ts";
@@ -100,10 +103,10 @@ export default function ChatInterface({ setIsSidebarOpen }: ChatInterfaceProps) 
   };
 
   const modelOptions = [
-    { id: "text", name: "Gemini Flash (General)", icon: Sparkles },
-    { id: "thinking", name: "Gemini Thinking (Advanced)", icon: Brain },
-    { id: "code", name: "Gemini Pro (Coding)", icon: BrainCircuit },
-    { id: "tech", name: "Gemini Pro (Technical)", icon: Zap },
+    { id: "text", name: "Gemini Flash", desc: "Fast & efficient for daily tasks", icon: Sparkles },
+    { id: "thinking", name: "Gemini Thinking", desc: "Deep reasoning & complex logic", icon: Brain },
+    { id: "code", name: "Gemini Pro Code", desc: "Specialized in software development", icon: BrainCircuit },
+    { id: "tech", name: "Gemini Pro Tech", desc: "Technical analysis & documentation", icon: Zap },
   ];
   const [isTyping, setIsTyping] = useState(false);
   const [streamingContent, setStreamingContent] = useState("");
@@ -114,6 +117,10 @@ export default function ChatInterface({ setIsSidebarOpen }: ChatInterfaceProps) 
 
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [chatTitle, setChatTitle] = useState("New Chat");
+  const [showPreview, setShowPreview] = useState(false);
+  const [isSaved, setIsSaved] = useState(true);
+  const [inputError, setInputError] = useState<string | null>(null);
+  const MAX_CHARS = 4000;
 
   useEffect(() => {
     if (id) {
@@ -141,9 +148,11 @@ export default function ChatInterface({ setIsSidebarOpen }: ChatInterfaceProps) 
 
   const handleRename = async () => {
     if (!id || !chatTitle.trim()) return;
+    setIsSaved(false);
     try {
       await api.patch(`/chat/${id}`, { title: chatTitle });
       setIsEditingTitle(false);
+      setIsSaved(true);
       toast.success("Chat renamed");
     } catch (err) {
       console.error(err);
@@ -169,7 +178,19 @@ export default function ChatInterface({ setIsSidebarOpen }: ChatInterfaceProps) 
   const handleSubmit = async (e?: React.FormEvent, overrideInput?: string) => {
     e?.preventDefault();
     const finalInput = overrideInput || input;
-    if (!finalInput.trim() || isTyping) return;
+    
+    if (!finalInput.trim()) {
+      setInputError("Please enter a message");
+      return;
+    }
+    
+    if (finalInput.length > MAX_CHARS) {
+      setInputError(`Message too long (max ${MAX_CHARS} characters)`);
+      return;
+    }
+
+    if (isTyping) return;
+    setInputError(null);
 
     let processedInput = finalInput;
     if (attachedFile) {
@@ -204,6 +225,7 @@ export default function ChatInterface({ setIsSidebarOpen }: ChatInterfaceProps) 
         navigate(`/chat/${chatId}`, { replace: true });
       }
 
+      setIsSaved(false);
       let fullContent = "";
       abortControllerRef.current = new AbortController();
       
@@ -227,6 +249,7 @@ export default function ChatInterface({ setIsSidebarOpen }: ChatInterfaceProps) 
         messages: finalMessages,
         title: finalInput.slice(0, 30) + (finalInput.length > 30 ? "..." : ""),
       });
+      setIsSaved(true);
 
     } catch (err) {
       console.error(err);
@@ -319,29 +342,62 @@ export default function ChatInterface({ setIsSidebarOpen }: ChatInterfaceProps) 
                 {chatTitle}
               </h2>
             )}
+            <AnimatePresence>
+              {isSaved && (
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="flex items-center gap-1 text-[10px] font-black text-emerald-500 uppercase tracking-widest bg-emerald-50 px-2 py-0.5 rounded-full"
+                >
+                  <CheckCircle2 size={10} />
+                  Saved
+                </motion.div>
+              )}
+            </AnimatePresence>
             <div className="h-4 w-[1px] bg-slate-200 mx-1" />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="gap-2 px-2 h-8 hover:bg-slate-100 shrink-0">
-                  <span className="text-xs font-semibold text-slate-500">
-                    {modelOptions.find(m => m.id === selectedModel)?.name.split(" ")[1]}
-                  </span>
-                  <ChevronDown size={12} className="text-slate-400" />
+                <Button variant="ghost" size="sm" className="gap-2 px-3 h-10 hover:bg-slate-100 shrink-0 border-2 border-slate-100 rounded-2xl transition-all hover:border-brand/20 hover:shadow-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-lg bg-brand/10 flex items-center justify-center text-brand">
+                      {React.createElement(modelOptions.find(m => m.id === selectedModel)?.icon || Sparkles, { size: 12 })}
+                    </div>
+                    <div className="flex flex-col items-start leading-none">
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Model</span>
+                      <span className="text-xs font-bold text-slate-800">
+                        {modelOptions.find(m => m.id === selectedModel)?.name}
+                      </span>
+                    </div>
+                  </div>
+                  <ChevronDown size={14} className="text-slate-400 ml-1" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-56 rounded-xl">
-                {modelOptions.map((opt) => (
-                  <DropdownMenuItem 
-                    key={opt.id} 
-                    onClick={() => setSelectedModel(opt.id)}
-                    className="gap-3 rounded-lg py-2"
-                  >
-                    <opt.icon size={16} className="text-brand" />
-                    <span className="text-sm">{opt.name}</span>
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
+              <DropdownMenuContent align="start" className="w-72 rounded-2xl p-2 shadow-2xl border-slate-200">
+              <div className="px-3 py-2 mb-1 text-[10px] font-black text-slate-400 uppercase tracking-widest">Select Model</div>
+              {modelOptions.map((opt) => (
+                <DropdownMenuItem 
+                  key={opt.id} 
+                  onClick={() => setSelectedModel(opt.id)}
+                  className={cn(
+                    "flex flex-col items-start gap-1 rounded-xl py-3 px-4 transition-all cursor-pointer mb-1",
+                    selectedModel === opt.id ? "bg-brand/5 border border-brand/10" : "hover:bg-slate-50"
+                  )}
+                >
+                  <div className="flex items-center gap-3 w-full">
+                    <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", selectedModel === opt.id ? "bg-brand text-white" : "bg-slate-100 text-slate-500")}>
+                      <opt.icon size={16} />
+                    </div>
+                    <div className="flex-1">
+                      <div className={cn("text-sm font-black", selectedModel === opt.id ? "text-brand" : "text-slate-900")}>{opt.name}</div>
+                      <div className="text-[10px] font-bold text-slate-400 leading-tight">{opt.desc}</div>
+                    </div>
+                    {selectedModel === opt.id && <CheckCircle2 size={14} className="text-brand" />}
+                  </div>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -567,9 +623,31 @@ export default function ChatInterface({ setIsSidebarOpen }: ChatInterfaceProps) 
               isCreativeMode ? "bg-amber-400/5 opacity-100" : "opacity-0"
             )} />
             
+            {showPreview && input && (
+              <div className="absolute inset-x-0 bottom-full mb-4 z-50 bg-white/98 backdrop-blur-xl p-6 overflow-y-auto max-h-[400px] rounded-[2rem] border-2 border-brand/20 shadow-2xl shadow-brand/10 animate-in slide-in-from-bottom-4 duration-300">
+                <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 bg-brand rounded-lg flex items-center justify-center text-white">
+                      <FileText size={12} />
+                    </div>
+                    <span className="text-xs font-black text-slate-800 uppercase tracking-widest">Markdown Preview</span>
+                  </div>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-slate-100" onClick={() => setShowPreview(false)}>
+                    <XCircle size={16} className="text-slate-400" />
+                  </Button>
+                </div>
+                <div className="prose prose-sm max-w-none prose-slate">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{input}</ReactMarkdown>
+                </div>
+              </div>
+            )}
+
             <textarea
               value={input}
-              onChange={(e) => setInput(e.target.value)}
+              onChange={(e) => {
+                setInput(e.target.value);
+                if (inputError) setInputError(null);
+              }}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
@@ -577,8 +655,36 @@ export default function ChatInterface({ setIsSidebarOpen }: ChatInterfaceProps) 
                 }
               }}
               placeholder={isResearchMode ? "Enter topic for deep research..." : isCreativeMode ? "Describe something creatively..." : "Ask me anything..."}
-              className="w-full bg-transparent border-none focus:ring-0 text-slate-800 placeholder-slate-400 p-4 min-h-[60px] max-h-[200px] resize-none outline-none text-sm"
+              className={cn(
+                "w-full bg-transparent border-none focus:ring-0 text-slate-800 placeholder-slate-400 p-4 min-h-[60px] max-h-[200px] resize-none outline-none text-sm",
+                inputError && "placeholder-red-400"
+              )}
             />
+            <div className="flex items-center justify-between px-4 pb-2">
+              <div className="flex items-center gap-2">
+                <div className={cn(
+                  "text-[10px] font-black px-2 py-0.5 rounded-md transition-colors",
+                  input.length > MAX_CHARS ? "bg-red-100 text-red-600" : "bg-slate-100 text-slate-400"
+                )}>
+                  {input.length} / {MAX_CHARS}
+                </div>
+                {input.length > 0 && (
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-6 w-6 text-slate-300 hover:text-red-500" 
+                    onClick={() => setInput("")}
+                  >
+                    <XCircle size={12} />
+                  </Button>
+                )}
+              </div>
+              {inputError && (
+                <div className="text-[10px] font-bold text-red-500 animate-pulse">
+                  {inputError}
+                </div>
+              )}
+            </div>
             <div className="flex items-center justify-between px-2 pb-2">
               <div className="flex items-center gap-1">
                 <Button 
@@ -606,6 +712,18 @@ export default function ChatInterface({ setIsSidebarOpen }: ChatInterfaceProps) 
                   )}
                 >
                   {isListening ? <MicOff size={18} /> : <Mic size={18} />}
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={() => setShowPreview(!showPreview)}
+                  className={cn(
+                    "text-slate-400 hover:text-brand transition-colors",
+                    showPreview && "text-brand bg-brand/10"
+                  )}
+                  title="Markdown Preview"
+                >
+                  <FileText size={18} />
                 </Button>
                 <Button 
                   variant="ghost" 
@@ -667,13 +785,41 @@ export default function ChatInterface({ setIsSidebarOpen }: ChatInterfaceProps) 
           <div className="flex items-center justify-between mt-4 px-2">
             <div className="flex items-center gap-2 text-[11px] text-slate-400 font-medium">
               {attachedFile ? (
-                <div className="flex items-center gap-2 bg-brand/5 text-brand px-2 py-1 rounded-lg border border-brand/10">
-                  <FileText size={12} />
-                  <span className="truncate max-w-[100px]">{attachedFile.name}</span>
-                  <button onClick={() => setAttachedFile(null)} className="hover:text-red-500">
-                    <XCircle size={12} />
-                  </button>
-                </div>
+                <Dialog>
+                  <DialogTrigger render={
+                    <div className="flex items-center gap-2 bg-brand/5 text-brand px-2 py-1 rounded-lg border border-brand/10 cursor-pointer hover:bg-brand/10 transition-colors">
+                      <FileText size={12} />
+                      <span className="truncate max-w-[100px]">{attachedFile.name}</span>
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setAttachedFile(null);
+                        }} 
+                        className="hover:text-red-500"
+                      >
+                        <XCircle size={12} />
+                      </button>
+                    </div>
+                  } />
+                  <DialogContent className="max-w-3xl max-h-[80vh] overflow-hidden flex flex-col rounded-[2rem]">
+                    <DialogHeader>
+                      <DialogTitle className="flex items-center gap-2 text-xl font-black">
+                        <FileText className="text-brand" />
+                        {attachedFile.name}
+                      </DialogTitle>
+                    </DialogHeader>
+                    <ScrollArea className="flex-1 mt-4 bg-slate-50 rounded-2xl p-6 border border-slate-100">
+                      <pre className="text-xs font-mono text-slate-700 whitespace-pre-wrap leading-relaxed">
+                        {attachedFile.content}
+                      </pre>
+                    </ScrollArea>
+                    <div className="flex justify-end mt-4">
+                      <Button onClick={() => setAttachedFile(null)} variant="ghost" className="text-red-500 hover:bg-red-50 font-bold rounded-xl">
+                        Remove File
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
               ) : (
                 <>
                   <Sparkles size={12} className="text-brand" />

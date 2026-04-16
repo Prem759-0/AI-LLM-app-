@@ -83,7 +83,7 @@ export default function App() {
   return (
     <AuthProvider>
       <Router>
-        <div className="flex h-screen w-full overflow-hidden bg-[#f8f7ff]">
+        <div className="min-h-screen w-full bg-[#f8f7ff]">
           <Routes>
             <Route path="/" element={<LandingPage />} />
             <Route path="/auth" element={<AuthPage />} />
@@ -91,7 +91,7 @@ export default function App() {
               path="/*"
               element={
                 <ProtectedRoute>
-                  <div className="flex h-full w-full">
+                  <div className="flex h-screen w-full overflow-hidden">
                     <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
                     <main className="flex-1 relative overflow-hidden">
                       <Routes>

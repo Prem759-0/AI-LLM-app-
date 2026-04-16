@@ -3,7 +3,7 @@ import { useNavigate, useParams, Link, useLocation } from "react-router-dom";
 import { 
   Plus, Search, Compass, Library, FileText, History, 
   MoreHorizontal, LogOut, PanelLeftClose, PanelLeftOpen,
-  Image as ImageIcon
+  Image as ImageIcon, Sparkles, Code
 } from "lucide-react";
 import { useAuth } from "../App.tsx";
 import api from "../lib/api.ts";
@@ -179,6 +179,26 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
           );
         })}
       </nav>
+
+      <div className="px-2 space-y-1 mb-6">
+        <div className={cn("px-4 mb-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider", !isOpen && "md:hidden")}>
+          Quick Access
+        </div>
+        {[
+          { icon: Sparkles, label: "AI Assistant", path: "/chat" },
+          { icon: ImageIcon, label: "Image Gen", path: "/image" },
+          { icon: Code, label: "Code Helper", path: "/chat" },
+        ].map((item) => (
+          <Link 
+            key={item.label} 
+            to={item.path}
+            className="flex items-center gap-3 px-3 py-2 rounded-xl text-slate-600 hover:bg-slate-200/50 transition-all group"
+          >
+            <item.icon size={18} className="text-slate-400 group-hover:text-brand" />
+            <span className={cn("text-xs font-bold", !isOpen && "md:hidden")}>{item.label}</span>
+          </Link>
+        ))}
+      </div>
 
       <div className="flex-1 overflow-hidden flex flex-col">
         <div className={cn("px-4 mb-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider", !isOpen && "md:hidden")}>

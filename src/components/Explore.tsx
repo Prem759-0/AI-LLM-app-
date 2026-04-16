@@ -52,7 +52,7 @@ export default function Explore() {
         />
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-16">
         {categories.map((cat, i) => (
           <motion.div
             key={cat.name}
@@ -60,7 +60,7 @@ export default function Explore() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.1 }}
             className={cn(
-              "p-8 rounded-[2.5rem] flex flex-col items-center justify-center gap-4 cursor-pointer hover:shadow-xl transition-all border border-transparent hover:border-slate-200 group",
+              "p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] flex flex-col items-center justify-center gap-4 cursor-pointer hover:shadow-xl transition-all border border-transparent hover:border-slate-200 group",
               cat.bg
             )}
           >

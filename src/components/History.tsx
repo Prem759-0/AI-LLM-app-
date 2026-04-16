@@ -174,28 +174,29 @@ export default function HistoryPage() {
               )}
               onClick={() => isSelectionMode ? toggleSelection(chat._id) : navigate(`/chat/${chat._id}`)}
             >
-              <div className="flex items-center gap-6">
+              <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-6 w-full">
                 {isSelectionMode ? (
                   <div className={cn(
-                    "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all",
+                    "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all shrink-0",
                     selectedChats.includes(chat._id) ? "bg-brand border-brand text-white" : "border-slate-300 bg-white"
                   )}>
                     {selectedChats.includes(chat._id) && <CheckCircle2 size={14} />}
                   </div>
                 ) : (
-                  <div className="w-14 h-14 bg-brand/10 rounded-2xl flex items-center justify-center text-brand group-hover:bg-brand group-hover:text-white transition-all shadow-sm">
-                    <MessageSquare size={28} />
+                  <div className="w-12 h-12 md:w-14 md:h-14 bg-brand/10 rounded-xl md:rounded-2xl flex items-center justify-center text-brand group-hover:bg-brand group-hover:text-white transition-all shadow-sm shrink-0">
+                    <MessageSquare size={24} className="md:hidden" />
+                    <MessageSquare size={28} className="hidden md:block" />
                   </div>
                 )}
-                <div>
-                  <h3 className="text-lg font-black text-slate-800 group-hover:text-brand transition-colors">{chat.title}</h3>
-                  <div className="flex items-center gap-4 mt-1.5">
-                    <div className="flex items-center gap-1.5 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                      <Calendar size={12} />
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-base md:text-lg font-black text-slate-800 group-hover:text-brand transition-colors truncate">{chat.title}</h3>
+                  <div className="flex items-center gap-3 md:gap-4 mt-1.5">
+                    <div className="flex items-center gap-1.5 text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                      <Calendar size={10} />
                       {new Date(chat.updatedAt).toLocaleDateString()}
                     </div>
-                    <div className="flex items-center gap-1.5 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                      <Clock size={12} />
+                    <div className="flex items-center gap-1.5 text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                      <Clock size={10} />
                       {new Date(chat.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </div>
                   </div>
@@ -203,19 +204,19 @@ export default function HistoryPage() {
               </div>
               
               {!isSelectionMode && (
-                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all">
-                  <Button variant="ghost" size="icon" className="text-slate-400 hover:text-brand rounded-xl"><Share2 size={18} /></Button>
-                  <Button variant="ghost" size="icon" className="text-slate-400 hover:text-brand rounded-xl"><Download size={18} /></Button>
+                <div className="flex items-center gap-1 md:gap-2 md:opacity-0 group-hover:opacity-100 transition-all shrink-0">
+                  <Button variant="ghost" size="icon" className="h-8 w-8 md:h-10 md:w-10 text-slate-400 hover:text-brand rounded-xl"><Share2 size={16} /></Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 md:h-10 md:w-10 text-slate-400 hover:text-brand rounded-xl"><Download size={16} /></Button>
                   <Button 
                     variant="ghost" 
                     size="icon" 
-                    className="text-slate-400 hover:text-red-500 rounded-xl"
+                    className="h-8 w-8 md:h-10 md:w-10 text-slate-400 hover:text-red-500 rounded-xl"
                     onClick={(e) => {
                       e.stopPropagation();
                       deleteChat(chat._id);
                     }}
                   >
-                    <Trash2 size={18} />
+                    <Trash2 size={16} />
                   </Button>
                 </div>
               )}

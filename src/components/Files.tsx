@@ -70,8 +70,8 @@ export default function Files() {
         />
       </div>
 
-      <div className="glass rounded-[2.5rem] border-white/50 overflow-hidden shadow-2xl mb-12">
-        <div className="grid grid-cols-12 gap-4 px-8 py-5 bg-slate-50/50 border-b border-slate-200/50 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+      <div className="glass rounded-[2rem] md:rounded-[2.5rem] border-white/50 overflow-hidden shadow-2xl mb-12">
+        <div className="hidden md:grid grid-cols-12 gap-4 px-8 py-5 bg-slate-50/50 border-b border-slate-200/50 text-[10px] font-black text-slate-400 uppercase tracking-widest">
           <div className="col-span-6">File Name</div>
           <div className="col-span-2">Size</div>
           <div className="col-span-3">Date Modified</div>
@@ -84,22 +84,24 @@ export default function Files() {
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: i * 0.05 }}
-              className="grid grid-cols-12 gap-4 px-8 py-6 items-center hover:bg-slate-50/50 transition-colors cursor-pointer group"
+              className="flex flex-col md:grid md:grid-cols-12 gap-4 px-6 md:px-8 py-6 items-start md:items-center hover:bg-slate-50/50 transition-colors cursor-pointer group"
             >
-              <div className="col-span-6 flex items-center gap-4">
-                <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm border border-slate-100 group-hover:scale-110 transition-transform">
+              <div className="w-full md:col-span-6 flex items-center gap-4">
+                <div className="w-10 h-10 md:w-12 md:h-12 bg-white rounded-xl md:rounded-2xl flex items-center justify-center shadow-sm border border-slate-100 group-hover:scale-110 transition-transform shrink-0">
                   {getIcon(f.type)}
                 </div>
-                <div>
-                  <span className="text-base font-black text-slate-800 group-hover:text-brand transition-colors">{f.name}</span>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{f.type}</p>
+                <div className="min-w-0 flex-1">
+                  <span className="text-sm md:text-base font-black text-slate-800 group-hover:text-brand transition-colors truncate block">{f.name}</span>
+                  <p className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{f.type}</p>
                 </div>
               </div>
-              <div className="col-span-2 text-xs text-slate-500 font-black">{f.size}</div>
-              <div className="col-span-3 text-xs text-slate-500 font-black">{f.date}</div>
-              <div className="col-span-1 flex justify-end gap-1">
-                <Button variant="ghost" size="icon" className="text-slate-400 hover:text-brand rounded-xl opacity-0 group-hover:opacity-100 transition-all"><Download size={18} /></Button>
-                <Button variant="ghost" size="icon" className="text-slate-400 hover:text-red-500 rounded-xl opacity-0 group-hover:opacity-100 transition-all"><Trash2 size={18} /></Button>
+              <div className="flex items-center justify-between w-full md:contents">
+                <div className="md:col-span-2 text-[10px] md:text-xs text-slate-500 font-black">{f.size}</div>
+                <div className="md:col-span-3 text-[10px] md:text-xs text-slate-500 font-black">{f.date}</div>
+                <div className="md:col-span-1 flex justify-end gap-1">
+                  <Button variant="ghost" size="icon" className="h-8 w-8 md:h-10 md:w-10 text-slate-400 hover:text-brand rounded-xl md:opacity-0 group-hover:opacity-100 transition-all"><Download size={16} /></Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 md:h-10 md:w-10 text-slate-400 hover:text-red-500 rounded-xl md:opacity-0 group-hover:opacity-100 transition-all"><Trash2 size={16} /></Button>
+                </div>
               </div>
             </motion.div>
           ))}

@@ -15,9 +15,12 @@
 }
 
 @layer base {
-  body {
+  html, body {
     @apply bg-[#f8f7ff] text-slate-900 antialiased selection:bg-brand/20 selection:text-brand-dark;
     font-family: 'Inter', system-ui, sans-serif;
+    overflow-x: hidden;
+    width: 100%;
+    position: relative;
   }
 }
 
