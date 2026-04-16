@@ -1,12 +1,24 @@
-import React from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { User, Mail, Shield, Camera, Save, Key } from "lucide-react";
 import { Button } from "./ui/button.tsx";
 import { useAuth } from "../App.tsx";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar.tsx";
+import { toast } from "sonner";
 
 export default function Profile() {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
+  const [name, setName] = useState(user?.name || "");
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    updateUser({ name });
+    setIsSaving(false);
+    toast.success("Profile updated successfully");
+  };
 
   return (
     <div className="flex flex-col h-full w-full max-w-4xl mx-auto px-4 md:px-8 py-8 overflow-y-auto no-scrollbar">
@@ -34,7 +46,7 @@ export default function Profile() {
                 <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name}`} />
                 <AvatarFallback>{user?.name?.[0]}</AvatarFallback>
               </Avatar>
-              <Button size="icon" className="absolute bottom-0 right-0 rounded-full bg-brand hover:bg-brand-dark text-white shadow-lg">
+              <Button size="icon" className="absolute bottom-0 right-0 rounded-full bg-brand hover:bg-brand-dark text-white shadow-lg" onClick={() => toast.info("Profile picture update coming soon!")}>
                 <Camera size={18} />
               </Button>
             </div>
@@ -55,7 +67,8 @@ export default function Profile() {
                 <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                 <input 
                   type="text" 
-                  defaultValue={user?.name}
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 pl-12 pr-4 font-bold text-slate-700 focus:ring-4 focus:ring-brand/10 focus:border-brand outline-none transition-all"
                 />
               </div>
@@ -75,9 +88,13 @@ export default function Profile() {
           </div>
 
           <div className="mt-10 flex justify-end">
-            <Button className="bg-brand hover:bg-brand-dark text-white rounded-2xl px-8 h-14 font-black shadow-xl shadow-brand/20 gap-3">
+            <Button 
+              onClick={handleSave}
+              disabled={isSaving}
+              className="bg-brand hover:bg-brand-dark text-white rounded-2xl px-8 h-14 font-black shadow-xl shadow-brand/20 gap-3"
+            >
               <Save size={20} />
-              Save Changes
+              {isSaving ? "Saving..." : "Save Changes"}
             </Button>
           </div>
         </section>
@@ -93,14 +110,14 @@ export default function Profile() {
                 <p className="font-black text-slate-800">Two-Factor Authentication</p>
                 <p className="text-xs text-slate-500 font-bold">Add an extra layer of security to your account.</p>
               </div>
-              <Button variant="outline" className="rounded-xl font-bold border-slate-200">Enable</Button>
+              <Button variant="outline" className="rounded-xl font-bold border-slate-200" onClick={() => toast.info("2FA configuration coming soon!")}>Enable</Button>
             </div>
             <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 border border-slate-100">
               <div>
                 <p className="font-black text-slate-800">Change Password</p>
                 <p className="text-xs text-slate-500 font-bold">Update your password regularly to stay secure.</p>
               </div>
-              <Button variant="outline" className="rounded-xl font-bold border-slate-200">Update</Button>
+              <Button variant="outline" className="rounded-xl font-bold border-slate-200" onClick={() => toast.info("Feature coming soon!")}>Update</Button>
             </div>
           </div>
         </section>

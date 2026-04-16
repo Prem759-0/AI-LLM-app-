@@ -45,79 +45,9 @@ export default function ChatInterface({ setIsSidebarOpen }: ChatInterfaceProps) 
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [selectedModel, setSelectedModel] = useState("text");
-  const [isListening, setIsListening] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
-
-  const startListening = () => {
-    if (!('webkitSpeechRecognition' in window)) {
-      toast.error("Speech recognition not supported in this browser");
-      return;
-    }
-
-    const recognition = new (window as any).webkitSpeechRecognition();
-    recognition.continuous = false;
-    recognition.interimResults = false;
-    recognition.lang = 'en-US';
-
-    recognition.onstart = () => {
-      setIsListening(true);
-      toast.info("Listening...");
-    };
-    recognition.onend = () => setIsListening(false);
-    recognition.onresult = (event: any) => {
-      const transcript = event.results[0][0].transcript;
-      setInput(prev => prev + (prev ? " " : "") + transcript);
-    };
-
-    recognition.start();
-  };
-
-  const speakText = (text: string) => {
-    if (!('speechSynthesis' in window)) {
-      toast.error("Text-to-speech not supported");
-      return;
-    }
-
-    if (isSpeaking) {
-      window.speechSynthesis.cancel();
-      setIsSpeaking(false);
-      return;
-    }
-
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = () => setIsSpeaking(false);
-    window.speechSynthesis.speak(utterance);
-  };
-
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const content = event.target?.result as string;
-      setAttachedFile({ name: file.name, content });
-      toast.success(`File "${file.name}" attached`);
-    };
-    reader.readAsText(file);
-    // Reset input value to allow re-uploading the same file
-    e.target.value = "";
-  };
-
-  const modelOptions = [
-    { id: "text", name: "Gemini Flash", desc: "Fast & efficient for daily tasks", icon: Sparkles },
-    { id: "thinking", name: "Gemini Thinking", desc: "Deep reasoning & complex logic", icon: Brain },
-    { id: "code", name: "Gemini Pro Code", desc: "Specialized in software development", icon: BrainCircuit },
-    { id: "tech", name: "Gemini Pro Tech", desc: "Technical analysis & documentation", icon: Zap },
-  ];
   const [isTyping, setIsTyping] = useState(false);
   const [streamingContent, setStreamingContent] = useState("");
   const [attachedFile, setAttachedFile] = useState<{ name: string; content: string } | null>(null);
-  const abortControllerRef = useRef<AbortController | null>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const [showScrollButton, setShowScrollButton] = useState(false);
-
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [chatTitle, setChatTitle] = useState("New Chat");
   const [showPreview, setShowPreview] = useState(false);
@@ -125,7 +55,67 @@ export default function ChatInterface({ setIsSidebarOpen }: ChatInterfaceProps) 
   const [isSaving, setIsSaving] = useState(false);
   const [inputError, setInputError] = useState<string | null>(null);
   const [showPremiumModal, setShowPremiumModal] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isResearchMode, setIsResearchMode] = useState(false);
+  const [isCreativeMode, setIsCreativeMode] = useState(false);
+  const [showScrollButton, setShowScrollButton] = useState(false);
   const MAX_CHARS = 4000;
+  
+  const recognitionRef = useRef<any>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      recognitionRef.current = new SpeechRecognition();
+      recognitionRef.current.continuous = true;
+      recognitionRef.current.interimResults = true;
+      
+      recognitionRef.current.onresult = (event: any) => {
+        const transcript = Array.from(event.results)
+          .map((result: any) => (result as any)[0])
+          .map((result: any) => result.transcript)
+          .join('');
+        setInput(transcript);
+      };
+
+      recognitionRef.current.onend = () => {
+        setIsListening(false);
+      };
+    }
+  }, []);
+
+  const toggleListening = () => {
+    if (isListening) {
+      recognitionRef.current?.stop();
+    } else {
+      if (!recognitionRef.current) {
+        toast.error("Speech recognition not supported");
+        return;
+      }
+      recognitionRef.current?.start();
+      setIsListening(true);
+      toast.info("Listening... Speak into your microphone.");
+    }
+  };
+
+  const speakText = (text: string) => {
+    if (isSpeaking) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+      return;
+    }
+    
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.onstart = () => setIsSpeaking(true);
+    utterance.onend = () => setIsSpeaking(false);
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const startListening = toggleListening;
 
   const insertMarkdown = (prefix: string, suffix: string = "") => {
     if (!textareaRef.current) return;
@@ -139,7 +129,6 @@ export default function ChatInterface({ setIsSidebarOpen }: ChatInterfaceProps) 
     const newText = before + prefix + selection + suffix + after;
     setInput(newText);
     
-    // Reset focus and selection
     setTimeout(() => {
       textareaRef.current?.focus();
       textareaRef.current?.setSelectionRange(
@@ -148,6 +137,27 @@ export default function ChatInterface({ setIsSidebarOpen }: ChatInterfaceProps) 
       );
     }, 0);
   };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const content = event.target?.result as string;
+      setAttachedFile({ name: file.name, content });
+      toast.success(`File "${file.name}" attached`);
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  };
+
+  const modelOptions = [
+    { id: "text", name: "Gemini Flash", desc: "Fast & efficient for daily tasks", icon: Sparkles },
+    { id: "thinking", name: "Gemini Thinking", desc: "Deep reasoning & complex logic", icon: Brain },
+    { id: "code", name: "Gemini Pro Code", desc: "Specialized in software development", icon: BrainCircuit },
+    { id: "tech", name: "Gemini Pro Tech", desc: "Technical analysis & documentation", icon: Zap },
+  ];
 
   useEffect(() => {
     if (id) {
@@ -198,10 +208,6 @@ export default function ChatInterface({ setIsSidebarOpen }: ChatInterfaceProps) 
       scrollRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
     }
   };
-
-  const [isResearchMode, setIsResearchMode] = useState(false);
-  const [isCreativeMode, setIsCreativeMode] = useState(false);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const MarkdownComponents: Components = {
     code({ node, inline, className, children, ...props }: any) {
@@ -535,10 +541,13 @@ export default function ChatInterface({ setIsSidebarOpen }: ChatInterfaceProps) 
         </div>
       </header>
 
-      <ScrollArea className="flex-1 min-h-0" onScroll={handleScroll}>
-        <div className="py-4 space-y-8 max-w-4xl mx-auto">
+      <ScrollArea className={cn("flex-1 min-h-0", messages.length === 0 && "overflow-hidden")} onScroll={handleScroll}>
+        <div className={cn(
+          "py-4 space-y-8 max-w-4xl mx-auto px-4",
+          messages.length === 0 && "h-full flex items-center justify-center"
+        )}>
           {messages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-8 px-4">
+            <div className="flex flex-col items-center justify-center text-center space-y-8 w-full">
               <motion.div 
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
@@ -593,9 +602,11 @@ export default function ChatInterface({ setIsSidebarOpen }: ChatInterfaceProps) 
                     {m.role === "user" ? (
                       <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name}`} />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-slate-900 text-brand">
-                        <Sparkles size={20} />
-                      </div>
+                      <AvatarFallback className="bg-slate-900 border-none">
+                        <div className="w-full h-full flex items-center justify-center text-brand">
+                          <Sparkles size={20} />
+                        </div>
+                      </AvatarFallback>
                     )}
                     <AvatarFallback className="bg-brand text-white text-xs">{user?.name?.[0]}</AvatarFallback>
                   </Avatar>
