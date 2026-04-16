@@ -6,18 +6,12 @@ import { Button } from "./ui/button.tsx";
 import { cn } from "../lib/utils.ts";
 
 export default function LibraryPage() {
+  const [savedItems, setSavedItems] = React.useState<any[]>([]);
   const sections = [
-    { title: "Favorites", icon: Star, count: 12, color: "text-amber-500", bg: "bg-amber-50" },
-    { title: "Saved Prompts", icon: Bookmark, count: 45, color: "text-blue-500", bg: "bg-blue-50" },
-    { title: "Reading List", icon: BookOpen, count: 8, color: "text-purple-500", bg: "bg-purple-50" },
-    { title: "Recent", icon: Clock, count: 120, color: "text-slate-500", bg: "bg-slate-50" },
-  ];
-
-  const savedItems = [
-    { title: "Advanced React Patterns", type: "Reading List", date: "2 hours ago", icon: BookOpen, color: "text-purple-500" },
-    { title: "Marketing Strategy Prompt", type: "Saved Prompts", date: "Yesterday", icon: Bookmark, color: "text-blue-500" },
-    { title: "System Design Interview Prep", type: "Favorites", date: "3 days ago", icon: Star, color: "text-amber-500" },
-    { title: "Python Data Science Snippets", type: "Saved Prompts", date: "1 week ago", icon: Bookmark, color: "text-blue-500" },
+    { title: "Favorites", icon: Star, count: 0, color: "text-amber-500", bg: "bg-amber-50" },
+    { title: "Saved Prompts", icon: Bookmark, count: 0, color: "text-blue-500", bg: "bg-blue-50" },
+    { title: "Reading List", icon: BookOpen, count: 0, color: "text-purple-500", bg: "bg-purple-50" },
+    { title: "Recent", icon: Clock, count: 0, color: "text-slate-500", bg: "bg-slate-50" },
   ];
 
   return (

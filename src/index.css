@@ -1,4 +1,7 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/geist";
 
 @theme {
   --color-brand: #6366f1;
@@ -15,12 +18,39 @@
 }
 
 @layer base {
-  html, body {
-    @apply bg-[#f8f7ff] text-slate-900 antialiased selection:bg-brand/20 selection:text-brand-dark;
-    font-family: 'Inter', system-ui, sans-serif;
+  html {
+    scroll-behavior: smooth;
+    @apply font-sans;
+  }
+  
+  body {
+    @apply bg-[#fcfcff] text-slate-900 antialiased selection:bg-brand/20 selection:text-brand-dark;
     overflow-x: hidden;
     width: 100%;
     position: relative;
+  }
+
+  /* Custom Scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-slate-200 rounded-full transition-colors hover:bg-slate-300;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
 }
 
@@ -28,66 +58,88 @@
   .glass {
     @apply bg-white/70 backdrop-blur-xl border border-white/40 shadow-[0_8px_32px_0_rgba(31,38,135,0.07)];
   }
+  
   .glass-dark {
     @apply bg-slate-900/70 backdrop-blur-xl border border-slate-800/20 shadow-xl;
   }
+  
   .sidebar-glass {
     @apply bg-slate-50/80 backdrop-blur-xl border-r border-slate-200/50;
   }
+  
   .chat-bubble-user {
-    @apply bg-brand text-white rounded-2xl rounded-tr-none px-5 py-3.5 shadow-lg shadow-brand/20 border border-brand-light/20;
+    @apply bg-brand text-white rounded-[1.5rem] rounded-tr-none px-5 py-3.5 shadow-lg shadow-brand/20 border border-brand-light/20 font-medium;
   }
+  
   .chat-bubble-ai {
-    @apply bg-white border border-slate-100 rounded-2xl rounded-tl-none px-5 py-3.5 shadow-sm hover:shadow-md transition-shadow;
+    @apply bg-white border border-slate-100 rounded-[1.5rem] rounded-tl-none px-5 py-3.5 shadow-sm hover:shadow-md transition-all duration-300;
   }
+  
   .brand-gradient {
     @apply bg-gradient-to-br from-brand via-brand-light to-brand-dark;
   }
+  
   .brand-text-gradient {
     @apply bg-gradient-to-br from-brand to-brand-dark bg-clip-text text-transparent;
   }
-  .no-scrollbar::-webkit-scrollbar {
-    display: none;
-  }
-  .no-scrollbar {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
 }
 
-/* Markdown Styles */
+/* Markdown Styles Refinement */
 .prose {
-  @apply max-w-none;
-}
-.prose pre {
-  @apply bg-slate-900 text-slate-50 p-4 rounded-lg overflow-x-auto my-4;
-}
-.prose code {
-  @apply bg-slate-100 text-brand-dark px-1 rounded font-mono text-sm;
-}
-.prose p {
-  @apply mb-4 leading-relaxed;
-}
-.prose ul, .prose ol {
-  @apply mb-4 ml-6;
-}
-.prose li {
-  @apply mb-1;
+  @apply max-w-none text-slate-700;
 }
 
-/* Custom Scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
+.prose p {
+  @apply mb-4 last:mb-0 leading-relaxed;
 }
-::-webkit-scrollbar-track {
-  @apply bg-transparent;
+
+.prose pre {
+  @apply bg-slate-900 text-slate-50 p-5 rounded-2xl overflow-x-auto my-6 border border-white/10 shadow-2xl;
 }
-::-webkit-scrollbar-thumb {
-  @apply bg-slate-200 rounded-full border-2 border-transparent bg-clip-padding hover:bg-slate-300 transition-colors;
+
+.prose code {
+  @apply bg-slate-100 text-brand-dark px-1.5 py-0.5 rounded-md font-mono text-sm before:content-none after:content-none;
 }
-@import "tw-animate-css";
-@import "shadcn/tailwind.css";
-@import "@fontsource-variable/geist";
+
+.prose pre code {
+  @apply bg-transparent p-0 text-slate-100;
+}
+
+.prose h1, .prose h2, .prose h3 {
+  @apply font-black tracking-tight text-slate-900 mt-8 mb-4 first:mt-0;
+}
+
+.prose h1 { @apply text-2xl; }
+.prose h2 { @apply text-xl; }
+.prose h3 { @apply text-lg; }
+
+.prose ul, .prose ol {
+  @apply my-4 ml-6 space-y-2;
+}
+
+.prose li {
+  @apply pl-1;
+}
+
+.prose blockquote {
+  @apply border-l-4 border-brand/30 pl-4 italic text-slate-500 my-6;
+}
+
+.prose a {
+  @apply text-brand hover:underline font-bold;
+}
+
+.prose table {
+  @apply w-full my-6 border-collapse;
+}
+
+.prose th {
+  @apply bg-slate-50 p-3 text-left font-black text-xs uppercase tracking-widest text-slate-500 border-b border-slate-100;
+}
+
+.prose td {
+  @apply p-3 border-b border-slate-50 text-sm;
+}
 
 @custom-variant dark (&:is(.dark *));
 
@@ -153,64 +205,5 @@
     --border: oklch(0.922 0 0);
     --input: oklch(0.922 0 0);
     --ring: oklch(0.708 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
     --radius: 0.625rem;
-    --sidebar: oklch(0.985 0 0);
-    --sidebar-foreground: oklch(0.145 0 0);
-    --sidebar-primary: oklch(0.205 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.97 0 0);
-    --sidebar-accent-foreground: oklch(0.205 0 0);
-    --sidebar-border: oklch(0.922 0 0);
-    --sidebar-ring: oklch(0.708 0 0);
-}
-
-.dark {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.922 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.556 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.488 0.243 264.376);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.556 0 0);
-}
-
-@layer base {
-  * {
-    @apply border-border outline-ring/50;
-    }
-  body {
-    @apply bg-background text-foreground;
-    }
-  html {
-    @apply font-sans;
-    }
 }

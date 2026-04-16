@@ -6,13 +6,7 @@ import { cn } from "../lib/utils.ts";
 import { Progress } from "./ui/progress.tsx";
 
 export default function Files() {
-  const files = [
-    { name: "Project_Specs.md", size: "12 KB", type: "markdown", date: "2 hours ago" },
-    { name: "Data_Analysis.json", size: "1.2 MB", type: "json", date: "Yesterday" },
-    { name: "App_Refactor.ts", size: "45 KB", type: "code", date: "3 days ago" },
-    { name: "User_Feedback.txt", size: "8 KB", type: "text", date: "1 week ago" },
-    { name: "API_Documentation.pdf", size: "2.4 MB", type: "pdf", date: "2 weeks ago" },
-  ];
+  const [files, setFiles] = React.useState<any[]>([]);
 
   const getIcon = (type: string) => {
     switch (type) {

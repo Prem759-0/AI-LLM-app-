@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate, useParams, Link, useLocation } from "react-router-dom";
 import { 
   Plus, Search, Compass, Library, FileText, History, 
   MoreHorizontal, LogOut, PanelLeftClose, PanelLeftOpen,
-  Image as ImageIcon, Sparkles, Code
+  Image as ImageIcon, Sparkles, Code, MessageSquare,
+  Calendar, Clock, ChevronRight
 } from "lucide-react";
 import { useAuth } from "../App.tsx";
 import api from "../lib/api.ts";
@@ -15,6 +16,7 @@ import {
   DropdownMenuTrigger, DropdownMenuSeparator 
 } from "./ui/dropdown-menu.tsx";
 import { cn } from "../lib/utils.ts";
+import { format, isToday, isYesterday, subDays, isAfter } from "date-fns";
 
 interface Chat {
   _id: string;
@@ -33,25 +35,51 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const [chats, setChats] = useState<Chat[]>([]);
-  // Removed local isOpen state
-
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      fetchChats(searchQuery);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [id, searchQuery]);
+    fetchChats();
+  }, [id]);
 
-  const fetchChats = async (query = "") => {
+  const fetchChats = async () => {
     try {
-      const res = await api.get(`/chat${query ? `?q=${query}` : ""}`);
+      const res = await api.get("/chat");
       setChats(res.data);
     } catch (err) {
       console.error(err);
     }
   };
+
+  const filteredChats = useMemo(() => {
+    if (!searchQuery.trim()) return chats;
+    return chats.filter(chat => 
+      chat.title.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [chats, searchQuery]);
+
+  const groupedChats = useMemo(() => {
+    const groups: { [key: string]: Chat[] } = {
+      "Today": [],
+      "Yesterday": [],
+      "Previous 7 Days": [],
+      "Older": []
+    };
+
+    filteredChats.forEach(chat => {
+      const date = new Date(chat.updatedAt);
+      if (isToday(date)) {
+        groups["Today"].push(chat);
+      } else if (isYesterday(date)) {
+        groups["Yesterday"].push(chat);
+      } else if (isAfter(date, subDays(new Date(), 7))) {
+        groups["Previous 7 Days"].push(chat);
+      } else {
+        groups["Older"].push(chat);
+      }
+    });
+
+    return Object.entries(groups).filter(([_, items]) => items.length > 0);
+  }, [filteredChats]);
 
   const createNewChat = async () => {
     try {
@@ -111,46 +139,49 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
         isOpen ? "w-72 translate-x-0" : "w-72 -translate-x-full md:w-20 md:translate-x-0"
       )}>
       <div className="p-4 flex items-center justify-between">
-        <Link to="/" className={cn("flex items-center gap-2", !isOpen && "md:hidden")}>
-          <div className="w-8 h-8 bg-brand rounded-lg flex items-center justify-center text-white font-bold">
-            C
+        <Link to="/" className={cn("flex items-center gap-3", !isOpen && "md:hidden")}>
+          <div className="w-9 h-9 bg-brand rounded-xl flex items-center justify-center text-white font-bold shadow-lg shadow-brand/20">
+            <Sparkles size={20} />
           </div>
-          <span className="font-bold text-xl text-slate-800">Cortex</span>
+          <span className="font-black text-xl text-slate-900 tracking-tight">Cortex</span>
         </Link>
         <Button 
           variant="ghost" 
           size="icon" 
           onClick={() => setIsOpen(!isOpen)}
-          className="text-slate-500"
+          className={cn("text-slate-500 hover:bg-slate-100 rounded-xl", !isOpen && "md:mx-auto")}
         >
           {isOpen ? <PanelLeftClose size={20} /> : <PanelLeftOpen size={20} />}
         </Button>
       </div>
 
-      <div className="px-4 mb-4">
+      <div className={cn("px-4 mb-4", !isOpen && "md:px-2")}>
         <Button 
           onClick={createNewChat}
-          className="w-full bg-slate-900 hover:bg-slate-800 text-white rounded-xl py-6 flex items-center gap-2 shadow-lg"
+          className={cn(
+            "w-full bg-slate-900 hover:bg-slate-800 text-white rounded-xl py-6 flex items-center gap-2 shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98]",
+            !isOpen && "md:p-0 md:h-12 md:w-12 md:mx-auto md:justify-center"
+          )}
         >
-          <Plus size={18} />
-          <span className={cn(!isOpen && "md:hidden")}>New chat</span>
+          <Plus size={18} className="shrink-0" />
+          <span className={cn("font-bold", !isOpen && "md:hidden")}>New chat</span>
         </Button>
       </div>
 
-      <div className="px-4 mb-6">
+      <div className={cn("px-4 mb-6", !isOpen && "md:hidden")}>
         <div className="relative group">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand transition-colors" size={16} />
           <input 
             type="text" 
-            placeholder="Search" 
+            placeholder="Search chats..." 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className={cn(
-              "w-full bg-slate-100/50 border-none rounded-xl py-2.5 pl-10 pr-4 text-sm focus:ring-2 focus:ring-brand/20 transition-all outline-none",
+              "w-full bg-slate-100/50 border-none rounded-xl py-2.5 pl-10 pr-4 text-sm focus:ring-2 focus:ring-brand/20 transition-all outline-none font-medium",
               !isOpen && "md:hidden"
             )}
           />
-          <div className={cn("absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400 border border-slate-200 rounded px-1", !isOpen && "md:hidden")}>
+          <div className={cn("absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-400 border border-slate-200 rounded px-1.5 py-0.5", !isOpen && "md:hidden")}>
             ⌘K
           </div>
         </div>
@@ -167,115 +198,103 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
                 "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group",
                 isActive 
                   ? "bg-brand/10 text-brand shadow-sm" 
-                  : "text-slate-600 hover:bg-slate-200/50"
+                  : "text-slate-600 hover:bg-slate-200/50",
+                !isOpen && "md:justify-center md:px-0"
               )}
               onClick={() => {
                 if (window.innerWidth < 768) setIsOpen(false);
               }}
             >
-              <item.icon size={20} className={cn("transition-colors", isActive ? "text-brand" : "group-hover:text-brand")} />
-              <span className={cn("text-sm font-semibold", !isOpen && "md:hidden")}>{item.label}</span>
+              <item.icon size={20} className={cn("transition-colors shrink-0", isActive ? "text-brand" : "group-hover:text-brand")} />
+              <span className={cn("text-sm font-bold truncate", !isOpen && "md:hidden")}>{item.label}</span>
             </Link>
           );
         })}
       </nav>
 
-      <div className="px-2 space-y-1 mb-6">
-        <div className={cn("px-4 mb-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider", !isOpen && "md:hidden")}>
-          Quick Access
-        </div>
-        {[
-          { icon: Sparkles, label: "AI Assistant", path: "/chat" },
-          { icon: ImageIcon, label: "Image Gen", path: "/image" },
-          { icon: Code, label: "Code Helper", path: "/chat" },
-        ].map((item) => (
-          <Link 
-            key={item.label} 
-            to={item.path}
-            className="flex items-center gap-3 px-3 py-2 rounded-xl text-slate-600 hover:bg-slate-200/50 transition-all group"
-          >
-            <item.icon size={18} className="text-slate-400 group-hover:text-brand" />
-            <span className={cn("text-xs font-bold", !isOpen && "md:hidden")}>{item.label}</span>
-          </Link>
-        ))}
-      </div>
-
       <div className="flex-1 overflow-hidden flex flex-col">
-        <div className={cn("px-4 mb-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider", !isOpen && "md:hidden")}>
-          Recent Chats
-        </div>
         <ScrollArea className="flex-1 px-2">
-          <div className="space-y-1">
-            {chats.map((chat) => (
-              <div 
-                key={chat._id}
-                className={cn(
-                  "group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer relative",
-                  id === chat._id ? "bg-white shadow-sm text-brand" : "text-slate-600 hover:bg-slate-200/50"
-                )}
-                onClick={() => {
-                  navigate(`/chat/${chat._id}`);
-                  if (window.innerWidth < 768) setIsOpen(false);
-                }}
-              >
-                <div className={cn("w-1.5 h-1.5 rounded-full", id === chat._id ? "bg-brand" : "bg-transparent")} />
-                {editingChatId === chat._id ? (
-                  <input
-                    autoFocus
-                    value={editTitle}
-                    onChange={(e) => setEditTitle(e.target.value)}
-                    onBlur={() => renameChat(chat._id)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") renameChat(chat._id);
-                      if (e.key === "Escape") setEditingChatId(null);
-                    }}
-                    className="flex-1 bg-white border border-brand/30 rounded px-1 text-sm outline-none"
-                    onClick={(e) => e.stopPropagation()}
-                  />
-                ) : (
-                  <span className={cn("text-sm font-medium truncate flex-1", !isOpen && "md:hidden")}>
-                    {chat.title}
-                  </span>
-                )}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className={cn("h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity", !isOpen && "md:hidden")}>
-                      <MoreHorizontal size={14} />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-40 rounded-xl">
-                    <DropdownMenuItem 
-                      className="text-sm rounded-lg"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setEditingChatId(chat._id);
-                        setEditTitle(chat.title);
-                      }}
-                    >
-                      Rename
-                    </DropdownMenuItem>
-                    <DropdownMenuItem 
-                      className="text-sm text-red-500 focus:text-red-500 rounded-lg"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        deleteChat(chat._id);
-                      }}
-                    >
-                      Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+          {groupedChats.map(([group, items]) => (
+            <div key={group} className="mb-4">
+              <div className={cn("px-4 mb-2 text-[10px] font-black text-slate-400 uppercase tracking-widest", !isOpen && "md:hidden")}>
+                {group}
               </div>
-            ))}
-          </div>
+              <div className="space-y-0.5">
+                {items.map((chat) => (
+                  <div 
+                    key={chat._id}
+                    className={cn(
+                      "group flex items-center gap-3 px-3 py-2 rounded-xl transition-all cursor-pointer relative",
+                      id === chat._id ? "bg-white shadow-sm text-brand" : "text-slate-600 hover:bg-slate-200/50"
+                    )}
+                    onClick={() => {
+                      navigate(`/chat/${chat._id}`);
+                      if (window.innerWidth < 768) setIsOpen(false);
+                    }}
+                  >
+                    <MessageSquare size={16} className={cn("shrink-0", id === chat._id ? "text-brand" : "text-slate-400 group-hover:text-brand")} />
+                    {editingChatId === chat._id ? (
+                      <input
+                        autoFocus
+                        value={editTitle}
+                        onChange={(e) => setEditTitle(e.target.value)}
+                        onBlur={() => renameChat(chat._id)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") renameChat(chat._id);
+                          if (e.key === "Escape") setEditingChatId(null);
+                        }}
+                        className="flex-1 bg-white border border-brand/30 rounded px-1 text-sm outline-none"
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    ) : (
+                      <span className={cn("text-sm font-bold truncate flex-1", !isOpen && "md:hidden")}>
+                        {chat.title}
+                      </span>
+                    )}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className={cn("h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity", !isOpen && "md:hidden")}>
+                          <MoreHorizontal size={14} />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-40 rounded-xl">
+                        <DropdownMenuItem 
+                          className="text-sm rounded-lg font-bold"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingChatId(chat._id);
+                            setEditTitle(chat.title);
+                          }}
+                        >
+                          Rename
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          className="text-sm text-red-500 focus:text-red-500 rounded-lg font-bold"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteChat(chat._id);
+                          }}
+                        >
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
         </ScrollArea>
       </div>
 
       <div className="p-4 border-t border-slate-200/50">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="w-full h-auto p-2 rounded-xl hover:bg-slate-200/50 transition-colors justify-start gap-3">
-              <Avatar className="h-9 w-9 border-2 border-white shadow-sm">
+            <Button variant="ghost" className={cn(
+              "w-full h-auto p-2 rounded-xl hover:bg-slate-200/50 transition-colors justify-start gap-3",
+              !isOpen && "md:justify-center md:p-0"
+            )}>
+              <Avatar className="h-9 w-9 border-2 border-white shadow-sm shrink-0">
                 <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name}`} />
                 <AvatarFallback>{user?.name?.[0]}</AvatarFallback>
               </Avatar>
@@ -287,10 +306,17 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" side="top" className="w-56 rounded-xl mb-2">
-            <DropdownMenuItem className="rounded-lg">Profile Settings</DropdownMenuItem>
-            <DropdownMenuItem className="rounded-lg">Billing</DropdownMenuItem>
+            <DropdownMenuItem className="rounded-lg cursor-pointer font-bold" onClick={() => navigate("/profile")}>
+              Profile Settings
+            </DropdownMenuItem>
+            <DropdownMenuItem className="rounded-lg cursor-pointer font-bold" onClick={() => navigate("/settings")}>
+              App Settings
+            </DropdownMenuItem>
+            <DropdownMenuItem className="rounded-lg cursor-pointer font-bold" onClick={() => navigate("/billing")}>
+              Billing
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-red-500 focus:text-red-500 rounded-lg" onClick={logout}>
+            <DropdownMenuItem className="text-red-500 focus:text-red-500 rounded-lg cursor-pointer font-bold" onClick={logout}>
               Log out
             </DropdownMenuItem>
           </DropdownMenuContent>

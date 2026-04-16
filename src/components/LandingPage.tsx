@@ -67,11 +67,11 @@ export default function LandingPage() {
         isScrolled ? "glass border-b border-white/20 py-3 shadow-lg" : "bg-transparent"
       )}>
         <div className="max-w-7xl mx-auto flex items-center justify-between w-full">
-          <div className="flex items-center gap-2 group cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+          <div className="flex items-center gap-3 group cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
             <div className="w-10 h-10 bg-brand rounded-xl flex items-center justify-center text-white font-bold shadow-lg shadow-brand/20 group-hover:rotate-12 transition-transform">
-              C
+              <Sparkles size={24} />
             </div>
-            <span className="font-bold text-2xl tracking-tight text-slate-900">Cortex</span>
+            <span className="font-black text-2xl tracking-tight text-slate-900">Cortex</span>
           </div>
           <div className="hidden md:flex items-center gap-8">
             <a href="#features" className="text-sm font-bold text-slate-600 hover:text-brand transition-colors">Features</a>
@@ -166,14 +166,66 @@ export default function LandingPage() {
               className="relative mt-20 w-full max-w-5xl"
             >
               <div className="relative z-10 glass rounded-[3rem] p-4 border-white/40 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.1)] overflow-hidden group">
-                <div className="bg-slate-900 rounded-[2.5rem] aspect-video flex items-center justify-center overflow-hidden relative">
-                  <img 
-                    src="https://picsum.photos/seed/cortex-ui/1200/900" 
-                    alt="App Preview" 
-                    className="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-1000"
-                    referrerPolicy="no-referrer"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent" />
+                <div className="bg-slate-900 rounded-[2.5rem] aspect-[16/10] flex flex-col overflow-hidden relative">
+                  {/* Mock Chat UI */}
+                  <div className="h-12 border-b border-white/10 flex items-center px-6 gap-3">
+                    <div className="flex gap-1.5">
+                      <div className="w-3 h-3 rounded-full bg-red-500/50" />
+                      <div className="w-3 h-3 rounded-full bg-amber-500/50" />
+                      <div className="w-3 h-3 rounded-full bg-emerald-500/50" />
+                    </div>
+                    <div className="h-4 w-32 bg-white/10 rounded-full mx-auto" />
+                  </div>
+                  <div className="flex-1 p-8 space-y-6">
+                    <motion.div 
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 1 }}
+                      className="flex gap-4"
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-brand/20 shrink-0" />
+                      <div className="space-y-2 flex-1">
+                        <div className="h-4 w-3/4 bg-white/10 rounded-lg" />
+                        <div className="h-4 w-1/2 bg-white/5 rounded-lg" />
+                      </div>
+                    </motion.div>
+                    <motion.div 
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 1.5 }}
+                      className="flex gap-4 justify-end"
+                    >
+                      <div className="space-y-2 flex-1 flex flex-col items-end">
+                        <div className="h-4 w-2/3 bg-brand/40 rounded-lg" />
+                        <div className="h-4 w-1/3 bg-brand/20 rounded-lg" />
+                      </div>
+                      <div className="w-10 h-10 rounded-xl bg-brand shrink-0" />
+                    </motion.div>
+                    <motion.div 
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: 2, duration: 1, repeat: Infinity, repeatType: "reverse" }}
+                      className="p-6 rounded-3xl bg-white/5 border border-white/10 space-y-4"
+                    >
+                      <div className="flex items-center gap-3">
+                        <Sparkles className="text-brand" size={18} />
+                        <div className="h-3 w-24 bg-brand/30 rounded-full" />
+                      </div>
+                      <div className="space-y-2">
+                        <div className="h-3 w-full bg-white/10 rounded-full" />
+                        <div className="h-3 w-full bg-white/10 rounded-full" />
+                        <div className="h-3 w-4/5 bg-white/5 rounded-full" />
+                      </div>
+                    </motion.div>
+                  </div>
+                  <div className="p-6 border-t border-white/10">
+                    <div className="h-14 w-full bg-white/5 rounded-2xl border border-white/10 flex items-center px-6 justify-between">
+                      <div className="h-4 w-48 bg-white/10 rounded-full" />
+                      <div className="w-8 h-8 rounded-lg bg-brand flex items-center justify-center">
+                        <ArrowRight size={16} className="text-white" />
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
               

@@ -10,6 +10,9 @@ import Explore from "./components/Explore.tsx";
 import Library from "./components/Library.tsx";
 import Files from "./components/Files.tsx";
 import History from "./components/History.tsx";
+import Profile from "./components/Profile.tsx";
+import SettingsPage from "./components/Settings.tsx";
+import Billing from "./components/Billing.tsx";
 import api from "./lib/api.ts";
 
 interface User {
@@ -102,6 +105,9 @@ export default function App() {
                         <Route path="/library" element={<Library />} />
                         <Route path="/files" element={<Files />} />
                         <Route path="/history" element={<History />} />
+                        <Route path="/profile" element={<Profile />} />
+                        <Route path="/settings" element={<SettingsPage />} />
+                        <Route path="/billing" element={<Billing />} />
                       </Routes>
                     </main>
                   </div>

@@ -1,14 +1,16 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import ReactMarkdown from "react-markdown";
+import ReactMarkdown, { Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { 
   Send, Mic, Image as ImageIcon, Lightbulb, 
   Search, Globe, Settings, Share2, Download, 
   Sparkles, Zap, BrainCircuit, CheckCircle2,
   ChevronDown, Paperclip, Wand2, Brain, History, Copy,
-  Menu, FileJson, FileText, MicOff, Volume2, XCircle
+  Menu, FileJson, FileText, MicOff, Volume2, XCircle,
+  Square, PlusCircle, Bold, Italic, List, Code2, Link as LinkIcon,
+  Quote, Eye, Info, Crown
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "./ui/button.tsx";
@@ -25,6 +27,7 @@ import { useAuth } from "../App.tsx";
 import api from "../lib/api.ts";
 import { cn } from "../lib/utils.ts";
 import { streamChat } from "../lib/gemini.ts";
+import PremiumModal from "./PremiumModal.tsx";
 
 interface Message {
   role: "user" | "assistant";
@@ -119,8 +122,32 @@ export default function ChatInterface({ setIsSidebarOpen }: ChatInterfaceProps) 
   const [chatTitle, setChatTitle] = useState("New Chat");
   const [showPreview, setShowPreview] = useState(false);
   const [isSaved, setIsSaved] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const [inputError, setInputError] = useState<string | null>(null);
+  const [showPremiumModal, setShowPremiumModal] = useState(false);
   const MAX_CHARS = 4000;
+
+  const insertMarkdown = (prefix: string, suffix: string = "") => {
+    if (!textareaRef.current) return;
+    const start = textareaRef.current.selectionStart;
+    const end = textareaRef.current.selectionEnd;
+    const text = textareaRef.current.value;
+    const before = text.substring(0, start);
+    const selection = text.substring(start, end);
+    const after = text.substring(end);
+    
+    const newText = before + prefix + selection + suffix + after;
+    setInput(newText);
+    
+    // Reset focus and selection
+    setTimeout(() => {
+      textareaRef.current?.focus();
+      textareaRef.current?.setSelectionRange(
+        start + prefix.length,
+        end + prefix.length
+      );
+    }, 0);
+  };
 
   useEffect(() => {
     if (id) {
@@ -174,6 +201,49 @@ export default function ChatInterface({ setIsSidebarOpen }: ChatInterfaceProps) 
 
   const [isResearchMode, setIsResearchMode] = useState(false);
   const [isCreativeMode, setIsCreativeMode] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const MarkdownComponents: Components = {
+    code({ node, inline, className, children, ...props }: any) {
+      const match = /language-(\w+)/.exec(className || '');
+      return !inline && match ? (
+        <div className="relative group/code my-6">
+          <div className="absolute right-4 top-4 opacity-0 group-hover/code:opacity-100 transition-opacity z-10">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 rounded-lg bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white/20"
+              onClick={() => {
+                navigator.clipboard.writeText(String(children).replace(/\n$/, ''));
+                toast.success("Code copied");
+              }}
+            >
+              <Copy size={14} />
+            </Button>
+          </div>
+          <div className="flex items-center justify-between px-4 py-2 bg-slate-800 rounded-t-2xl border-b border-white/5">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{match[1]}</span>
+          </div>
+          <pre className="!mt-0 !rounded-t-none" {...props}>
+            <code className={className}>
+              {children}
+            </code>
+          </pre>
+        </div>
+      ) : (
+        <code className={className} {...props}>
+          {children}
+        </code>
+      );
+    }
+  };
+
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+    }
+  }, [input]);
 
   const handleSubmit = async (e?: React.FormEvent, overrideInput?: string) => {
     e?.preventDefault();
@@ -225,6 +295,7 @@ export default function ChatInterface({ setIsSidebarOpen }: ChatInterfaceProps) 
         navigate(`/chat/${chatId}`, { replace: true });
       }
 
+      setIsSaving(true);
       setIsSaved(false);
       let fullContent = "";
       abortControllerRef.current = new AbortController();
@@ -249,6 +320,7 @@ export default function ChatInterface({ setIsSidebarOpen }: ChatInterfaceProps) 
         messages: finalMessages,
         title: finalInput.slice(0, 30) + (finalInput.length > 30 ? "..." : ""),
       });
+      setIsSaving(false);
       setIsSaved(true);
 
     } catch (err) {
@@ -343,34 +415,43 @@ export default function ChatInterface({ setIsSidebarOpen }: ChatInterfaceProps) 
               </h2>
             )}
             <AnimatePresence>
-              {isSaved && (
+              {isSaving ? (
+                <motion.div 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="flex items-center gap-1.5 text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-100 px-2 py-0.5 rounded-full shrink-0"
+                >
+                  <div className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-pulse" />
+                  <span>Saving...</span>
+                </motion.div>
+              ) : isSaved && (
                 <motion.div 
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0 }}
-                  className="flex items-center gap-1 text-[10px] font-black text-emerald-500 uppercase tracking-widest bg-emerald-50 px-2 py-0.5 rounded-full"
+                  className="flex items-center gap-1 text-[10px] font-black text-emerald-500 uppercase tracking-widest bg-emerald-50 px-2 py-0.5 rounded-full shrink-0"
                 >
                   <CheckCircle2 size={10} />
-                  Saved
+                  <span className="hidden sm:inline">Saved</span>
                 </motion.div>
               )}
             </AnimatePresence>
-            <div className="h-4 w-[1px] bg-slate-200 mx-1" />
+            <div className="h-4 w-[1px] bg-slate-200 mx-1 shrink-0" />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="gap-2 px-3 h-10 hover:bg-slate-100 shrink-0 border-2 border-slate-100 rounded-2xl transition-all hover:border-brand/20 hover:shadow-sm">
+                <Button variant="ghost" size="sm" className="gap-2 px-2 md:px-3 h-9 md:h-10 hover:bg-slate-100 shrink-0 border-2 border-slate-100 rounded-xl md:rounded-2xl transition-all hover:border-brand/20 hover:shadow-sm">
                   <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-lg bg-brand/10 flex items-center justify-center text-brand">
+                    <div className="w-6 h-6 rounded-lg bg-brand/10 flex items-center justify-center text-brand shrink-0">
                       {React.createElement(modelOptions.find(m => m.id === selectedModel)?.icon || Sparkles, { size: 12 })}
                     </div>
-                    <div className="flex flex-col items-start leading-none">
+                    <div className="hidden sm:flex flex-col items-start leading-none">
                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Model</span>
                       <span className="text-xs font-bold text-slate-800">
                         {modelOptions.find(m => m.id === selectedModel)?.name}
                       </span>
                     </div>
                   </div>
-                  <ChevronDown size={14} className="text-slate-400 ml-1" />
+                  <ChevronDown size={14} className="text-slate-400" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-72 rounded-2xl p-2 shadow-2xl border-slate-200">
@@ -401,6 +482,15 @@ export default function ChatInterface({ setIsSidebarOpen }: ChatInterfaceProps) 
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => navigate("/chat")}
+            className="hidden sm:flex text-slate-500 hover:text-brand gap-2 font-bold"
+          >
+            <PlusCircle size={16} />
+            <span>New</span>
+          </Button>
           {messages.length > 0 && (
             <Button variant="ghost" size="sm" onClick={clearChat} className="text-slate-500 hover:text-red-500 gap-2">
               <History size={14} />
@@ -436,32 +526,33 @@ export default function ChatInterface({ setIsSidebarOpen }: ChatInterfaceProps) 
             </DropdownMenuContent>
           </DropdownMenu>
           <Button 
-            className="bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs px-4 h-8 ml-2"
-            onClick={() => toast.info("Premium features coming soon!")}
+            className="bg-brand hover:bg-brand-dark text-white rounded-xl text-xs px-4 h-9 ml-2 font-bold shadow-lg shadow-brand/20 transition-all hover:scale-105"
+            onClick={() => setShowPremiumModal(true)}
           >
+            <Crown size={14} className="mr-2" />
             Upgrade
           </Button>
         </div>
       </header>
 
-      <ScrollArea className="flex-1 pr-4 min-h-0" onScroll={handleScroll}>
-        <div className="py-8 space-y-8">
+      <ScrollArea className="flex-1 min-h-0" onScroll={handleScroll}>
+        <div className="py-4 space-y-8 max-w-4xl mx-auto">
           {messages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center min-h-[50vh] text-center space-y-6">
+            <div className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-8 px-4">
               <motion.div 
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ duration: 0.5 }}
-                className="w-24 h-24 bg-brand/10 rounded-full flex items-center justify-center relative"
+                className="w-20 h-20 bg-brand rounded-2xl flex items-center justify-center text-white shadow-2xl shadow-brand/40 relative group"
               >
-                <div className="absolute inset-0 bg-brand/20 rounded-full animate-pulse" />
-                <div className="w-16 h-16 bg-brand rounded-full flex items-center justify-center text-white shadow-xl z-10">
-                  <Zap size={32} />
-                </div>
+                <div className="absolute inset-0 bg-brand rounded-2xl animate-ping opacity-20 group-hover:opacity-40 transition-opacity" />
+                <Sparkles size={40} className="relative z-10" />
               </motion.div>
-              <div className="space-y-2">
-                <h1 className="text-4xl font-bold text-slate-900">Hello, {user?.name?.split(" ")[0]}</h1>
-                <p className="text-xl text-slate-500">How can I assist you today?</p>
+              <div className="space-y-3">
+                <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight">
+                  Hello, <span className="brand-text-gradient">{user?.name?.split(" ")[0]}</span>
+                </h1>
+                <p className="text-lg md:text-xl text-slate-500 font-medium">How can I assist your creative process today?</p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full mt-12">
@@ -496,56 +587,92 @@ export default function ChatInterface({ setIsSidebarOpen }: ChatInterfaceProps) 
                   )}
                 >
                   <Avatar className={cn(
-                    "h-9 w-9 border-2 border-white shadow-sm shrink-0",
-                    m.role === "user" ? "bg-brand" : "bg-slate-100"
+                    "h-10 w-10 border-2 border-white shadow-md shrink-0 transition-transform hover:scale-110",
+                    m.role === "user" ? "bg-brand" : "bg-slate-900"
                   )}>
                     {m.role === "user" ? (
-                      <AvatarFallback className="bg-brand text-white text-xs">{user?.name?.[0]}</AvatarFallback>
+                      <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name}`} />
                     ) : (
-                      <AvatarFallback className="bg-slate-800 text-white text-xs">AI</AvatarFallback>
+                      <div className="w-full h-full flex items-center justify-center bg-slate-900 text-brand">
+                        <Sparkles size={20} />
+                      </div>
                     )}
+                    <AvatarFallback className="bg-brand text-white text-xs">{user?.name?.[0]}</AvatarFallback>
                   </Avatar>
                   <div className={cn(
                     "max-w-[85%] md:max-w-[75%] relative group/message",
                     m.role === "user" ? "chat-bubble-user" : "chat-bubble-ai"
                   )}>
                     <div className="prose prose-sm md:prose-base dark:prose-invert">
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.content}</ReactMarkdown>
+                      <ReactMarkdown components={MarkdownComponents} remarkPlugins={[remarkGfm]}>{m.content}</ReactMarkdown>
                     </div>
-                    {m.role === "assistant" && (
-                      <div className="absolute -right-12 top-0 flex flex-col gap-1 opacity-0 group-hover/message:opacity-100 transition-opacity">
+                    <div className={cn(
+                      "absolute top-0 flex gap-1 opacity-0 group-hover/message:opacity-100 transition-all duration-200",
+                      m.role === "user" ? "-left-20 flex-row-reverse" : "-right-24"
+                    )}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 rounded-xl bg-white/80 backdrop-blur-sm shadow-sm border border-slate-100 text-slate-400 hover:text-brand hover:scale-110 transition-all"
+                        onClick={() => {
+                          navigator.clipboard.writeText(m.content);
+                          toast.success("Copied to clipboard");
+                        }}
+                      >
+                        <Copy size={14} />
+                      </Button>
+                      {m.role === "assistant" && (
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className={cn(
+                              "h-8 w-8 rounded-xl bg-white/80 backdrop-blur-sm shadow-sm border border-slate-100 text-slate-400 hover:text-brand hover:scale-110 transition-all",
+                              isSpeaking && "text-brand animate-pulse"
+                            )}
+                            onClick={() => speakText(m.content)}
+                          >
+                            <Volume2 size={14} />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 rounded-xl bg-white/80 backdrop-blur-sm shadow-sm border border-slate-100 text-slate-400 hover:text-brand hover:scale-110 transition-all"
+                            onClick={() => {
+                              const lastUserMessage = messages.filter(msg => msg.role === "user").pop();
+                              if (lastUserMessage) {
+                                setMessages(prev => prev.slice(0, -2));
+                                handleSubmit(undefined, lastUserMessage.content);
+                              }
+                            }}
+                          >
+                            <Wand2 size={14} />
+                          </Button>
+                        </>
+                      )}
+                      {m.role === "user" && (
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 text-slate-400 hover:text-brand"
+                          className="h-8 w-8 rounded-xl bg-white/80 backdrop-blur-sm shadow-sm border border-slate-100 text-slate-400 hover:text-brand hover:scale-110 transition-all"
                           onClick={() => {
-                            navigator.clipboard.writeText(m.content);
-                            toast.success("Copied to clipboard");
+                            setInput(m.content);
+                            setMessages(prev => prev.slice(0, i));
+                            textareaRef.current?.focus();
                           }}
                         >
-                          <Copy size={14} />
+                          <Settings size={14} className="rotate-90" />
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className={cn(
-                            "h-8 w-8 text-slate-400 hover:text-brand",
-                            isSpeaking && "text-brand animate-pulse"
-                          )}
-                          onClick={() => speakText(m.content)}
-                        >
-                          <Volume2 size={14} />
-                        </Button>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
                 </motion.div>
               ))}
               
               {isTyping && (
                 <div className="flex gap-4">
-                  <Avatar className="h-9 w-9 border-2 border-white shadow-sm bg-slate-100 shrink-0">
-                    <AvatarFallback className="bg-slate-800 text-white text-xs">AI</AvatarFallback>
+                  <Avatar className="h-10 w-10 border-2 border-white shadow-md bg-slate-900 shrink-0 flex items-center justify-center text-brand">
+                    <Sparkles size={20} />
                   </Avatar>
                   <div className="chat-bubble-ai min-w-[120px]">
                     {(selectedModel === "thinking" || isResearchMode) && !streamingContent && (
@@ -558,7 +685,7 @@ export default function ChatInterface({ setIsSidebarOpen }: ChatInterfaceProps) 
                     )}
                     {streamingContent ? (
                       <div className="prose prose-sm md:prose-base dark:prose-invert">
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{streamingContent}</ReactMarkdown>
+                        <ReactMarkdown components={MarkdownComponents} remarkPlugins={[remarkGfm]}>{streamingContent}</ReactMarkdown>
                       </div>
                     ) : (
                       <div className="flex gap-1.5 py-2">
@@ -613,10 +740,42 @@ export default function ChatInterface({ setIsSidebarOpen }: ChatInterfaceProps) 
             </div>
           )}
           <div className={cn(
-            "glass rounded-3xl p-2 shadow-2xl border-white/50 relative overflow-hidden transition-all duration-500",
+            "glass rounded-[2rem] p-2 shadow-2xl border-white/50 relative overflow-hidden transition-all duration-500",
             isResearchMode && "ring-2 ring-brand/30 shadow-brand/10",
             isCreativeMode && "ring-2 ring-amber-400/30 shadow-amber-400/10"
           )}>
+            {/* Markdown Toolbar */}
+            <div className="flex items-center gap-1 px-2 py-1 border-b border-slate-100 mb-1 overflow-x-auto no-scrollbar">
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-brand" onClick={() => insertMarkdown("**", "**")} title="Bold">
+                <Bold size={14} />
+              </Button>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-brand" onClick={() => insertMarkdown("_", "_")} title="Italic">
+                <Italic size={14} />
+              </Button>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-brand" onClick={() => insertMarkdown("- ")} title="List">
+                <List size={14} />
+              </Button>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-brand" onClick={() => insertMarkdown("`", "`")} title="Code">
+                <Code2 size={14} />
+              </Button>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-brand" onClick={() => insertMarkdown("[", "](url)")} title="Link">
+                <LinkIcon size={14} />
+              </Button>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-brand" onClick={() => insertMarkdown("> ")} title="Quote">
+                <Quote size={14} />
+              </Button>
+              <div className="h-4 w-[1px] bg-slate-100 mx-1" />
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className={cn("h-8 gap-2 text-[10px] font-black uppercase tracking-widest", showPreview ? "text-brand bg-brand/5" : "text-slate-400")}
+                onClick={() => setShowPreview(!showPreview)}
+              >
+                <Eye size={12} />
+                Preview
+              </Button>
+            </div>
+
             <div className={cn(
               "absolute inset-0 pointer-events-none transition-opacity duration-500",
               isResearchMode ? "bg-brand/5 opacity-100" : "opacity-0",
@@ -642,7 +801,21 @@ export default function ChatInterface({ setIsSidebarOpen }: ChatInterfaceProps) 
               </div>
             )}
 
+            {isTyping && (
+              <div className="absolute -top-12 left-1/2 -translate-x-1/2 z-20">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => abortControllerRef.current?.abort()}
+                  className="rounded-full bg-white/90 backdrop-blur-md border-slate-200 text-slate-600 hover:bg-white shadow-xl gap-2 px-4 font-bold"
+                >
+                  <Square size={12} className="fill-current" />
+                  <span>Stop Generating</span>
+                </Button>
+              </div>
+            )}
             <textarea
+              ref={textareaRef}
               value={input}
               onChange={(e) => {
                 setInput(e.target.value);
@@ -656,16 +829,19 @@ export default function ChatInterface({ setIsSidebarOpen }: ChatInterfaceProps) 
               }}
               placeholder={isResearchMode ? "Enter topic for deep research..." : isCreativeMode ? "Describe something creatively..." : "Ask me anything..."}
               className={cn(
-                "w-full bg-transparent border-none focus:ring-0 text-slate-800 placeholder-slate-400 p-4 min-h-[60px] max-h-[200px] resize-none outline-none text-sm",
+                "w-full bg-transparent border-none focus:ring-0 text-slate-800 placeholder-slate-400 p-4 min-h-[60px] max-h-[300px] resize-none outline-none text-sm transition-all",
                 inputError && "placeholder-red-400"
               )}
             />
             <div className="flex items-center justify-between px-4 pb-2">
               <div className="flex items-center gap-2">
                 <div className={cn(
-                  "text-[10px] font-black px-2 py-0.5 rounded-md transition-colors",
-                  input.length > MAX_CHARS ? "bg-red-100 text-red-600" : "bg-slate-100 text-slate-400"
+                  "text-[10px] font-black px-2 py-0.5 rounded-md transition-all flex items-center gap-1.5",
+                  input.length > MAX_CHARS ? "bg-red-100 text-red-600 animate-bounce" : 
+                  input.length > MAX_CHARS - 500 ? "bg-amber-100 text-amber-600" :
+                  "bg-slate-100 text-slate-400"
                 )}>
+                  {input.length > MAX_CHARS - 500 && <Info size={10} />}
                   {input.length} / {MAX_CHARS}
                 </div>
                 {input.length > 0 && (
@@ -843,6 +1019,8 @@ export default function ChatInterface({ setIsSidebarOpen }: ChatInterfaceProps) 
           </div>
         </div>
       </div>
+      {/* Premium Modal */}
+      <PremiumModal isOpen={showPremiumModal} onOpenChange={setShowPremiumModal} />
     </div>
   );
 }
