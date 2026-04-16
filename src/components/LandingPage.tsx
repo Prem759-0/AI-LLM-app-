@@ -5,7 +5,8 @@ import {
   BrainCircuit, Sparkles, Zap, Shield, 
   ArrowRight, MessageSquare, Image as ImageIcon, 
   Globe, Code, Cpu, ChevronRight, CheckCircle2,
-  Play, Star, Users, Layout, Layers
+  Play, Star, Users, Layout, Layers, Menu,
+  ShieldCheck, Box, Wand2, Brain
 } from "lucide-react";
 import { Button } from "./ui/button.tsx";
 import { cn } from "../lib/utils.ts";
@@ -60,306 +61,400 @@ export default function LandingPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#f8f7ff] selection:bg-brand/30 relative">
+    <div className="min-h-screen bg-[#02040a] selection:bg-brand/30 relative text-white selection:text-white">
+      {/* Dynamic Background */}
+      <div className="fixed inset-0 -z-10 overflow-hidden">
+        <div className="absolute top-[-20%] left-[-10%] w-[70%] h-[70%] bg-brand/10 blur-[150px] rounded-full animate-pulse" />
+        <div className="absolute bottom-[-20%] right-[-10%] w-[70%] h-[70%] bg-purple-600/10 blur-[150px] rounded-full animate-pulse delay-1000" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:40px_40px] opacity-20" />
+      </div>
+
       {/* Navigation */}
       <nav className={cn(
-        "fixed top-0 left-0 right-0 z-50 px-4 md:px-6 py-4 transition-all duration-500",
-        isScrolled ? "glass border-b border-white/20 py-3 shadow-lg" : "bg-transparent"
+        "fixed top-0 left-0 right-0 z-50 px-4 md:px-8 py-6 transition-all duration-500",
+        isScrolled ? "bg-black/60 backdrop-blur-xl border-b border-white/10 py-4 shadow-2xl" : "bg-transparent"
       )}>
         <div className="max-w-7xl mx-auto flex items-center justify-between w-full">
-          <div className="flex items-center gap-3 group cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-            <div className="w-10 h-10 bg-brand rounded-xl flex items-center justify-center text-white font-bold shadow-lg shadow-brand/20 group-hover:rotate-12 transition-transform">
+          <motion.div 
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="flex items-center gap-3 group cursor-pointer" 
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          >
+            <div className="w-11 h-11 bg-brand rounded-[1rem] flex items-center justify-center text-white font-bold shadow-lg shadow-brand/20 group-hover:rotate-[15deg] transition-all duration-500 bg-gradient-to-br from-brand to-purple-600">
               <Sparkles size={24} />
             </div>
-            <span className="font-black text-2xl tracking-tight text-slate-900">Cortex</span>
-          </div>
-          <div className="hidden md:flex items-center gap-8">
-            <a href="#features" className="text-sm font-bold text-slate-600 hover:text-brand transition-colors">Features</a>
-            <a href="#pricing" className="text-sm font-bold text-slate-600 hover:text-brand transition-colors">Pricing</a>
+            <span className="font-black text-2xl tracking-tighter text-white uppercase italic">Cortex</span>
+          </motion.div>
+          
+          <div className="hidden md:flex items-center gap-10">
+            {['Features', 'Intelligence', 'Workflow', 'Pricing'].map((item, i) => (
+              <motion.a 
+                key={item}
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.1 }}
+                href={`#${item.toLowerCase()}`} 
+                className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 hover:text-white transition-colors"
+              >
+                {item}
+              </motion.a>
+            ))}
+            <div className="h-6 w-[1px] bg-white/10 mx-2" />
             <Button 
               onClick={() => navigate("/auth")}
               variant="ghost" 
-              className="text-sm font-bold text-slate-900"
+              className="text-xs font-black uppercase tracking-[0.2em] text-white hover:bg-white/5"
             >
-              Log in
+              Sign In
             </Button>
             <Button 
               onClick={() => navigate("/chat")}
-              className="bg-slate-900 hover:bg-slate-800 text-white rounded-xl px-6 h-11 font-bold shadow-xl hover:scale-105 transition-all"
+              className="bg-white text-black hover:bg-slate-200 rounded-full px-8 h-12 font-black uppercase text-[10px] tracking-widest shadow-[0_0_20px_rgba(255,255,255,0.2)] hover:scale-105 active:scale-95 transition-all"
             >
-              Get Started
+              Start Chatting
             </Button>
           </div>
+
           <Button 
             variant="ghost" 
             size="icon" 
-            className="md:hidden"
+            className="md:hidden text-white"
             onClick={() => navigate("/chat")}
           >
-            <ArrowRight size={20} />
+            <Menu size={24} />
           </Button>
         </div>
       </nav>
 
       {/* Hero Section */}
-      <section className="relative pt-32 md:pt-40 pb-16 md:pb-20 px-4 md:px-6 overflow-hidden min-h-[90vh] flex items-center">
-        <div className="absolute inset-0 -z-10">
-          <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] bg-brand/5 blur-[120px] rounded-full animate-pulse" />
-          <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] bg-purple-500/5 blur-[120px] rounded-full animate-pulse delay-1000" />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:40px_40px] [mask-image:radial-gradient(ellipse_50%_50%_at_50%_50%,#000_70%,transparent_100%)] opacity-20" />
+      <section className="relative pt-32 md:pt-40 pb-24 px-4 overflow-hidden min-h-screen flex items-center">
+        {/* Floating Particles/Elements */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          {[...Array(6)].map((_, i) => (
+            <motion.div
+              key={i}
+              initial={{ 
+                x: Math.random() * 100 + "%", 
+                y: Math.random() * 100 + "%",
+                opacity: 0 
+              }}
+              animate={{ 
+                x: [null, Math.random() * 100 + "%"],
+                y: [null, Math.random() * 100 + "%"],
+                opacity: [0, 0.2, 0],
+                rotate: [0, 180, 360]
+              }}
+              transition={{ 
+                duration: 20 + Math.random() * 20, 
+                repeat: Infinity,
+                ease: "linear"
+              }}
+              className="absolute w-32 h-32 md:w-64 md:h-64 rounded-full bg-brand/5 blur-3xl"
+            />
+          ))}
         </div>
 
-        <div className="max-w-7xl mx-auto w-full">
+        <div className="max-w-7xl mx-auto w-full relative">
           <div className="flex flex-col items-center text-center">
             <motion.div
-              initial={{ opacity: 0, y: 30 }}
+              initial={{ opacity: 0, y: 40 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, ease: "easeOut" }}
-              className="max-w-4xl"
+              transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+              className="max-w-5xl"
             >
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-brand/5 border border-brand/10 text-brand text-[10px] md:text-xs font-black mb-8 uppercase tracking-widest">
-                <Sparkles size={14} />
-                <span>Cortex AI v2.5 is here</span>
-              </div>
-              <h1 className="text-5xl sm:text-7xl md:text-9xl font-black text-slate-900 tracking-tight leading-[0.85] mb-8">
-                Intelligence <br />
-                <span className="brand-text-gradient">Redefined.</span>
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.2 }}
+                className="inline-flex items-center gap-3 px-6 py-2 rounded-full bg-white/5 border border-white/10 text-brand text-[10px] font-black mb-12 uppercase tracking-[0.3em] shadow-inner"
+              >
+                <div className="w-2 h-2 rounded-full bg-brand animate-ping" />
+                <span>Next-Gen Intelligence Engine</span>
+              </motion.div>
+              
+              <h1 className="text-[12vw] sm:text-[10vw] md:text-[8vw] font-black text-white tracking-tighter leading-[0.8] mb-12 uppercase italic">
+                Beyond <br /> 
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand via-purple-400 to-indigo-400 animate-gradient-x">Creation.</span>
               </h1>
-              <p className="text-lg md:text-2xl text-slate-500 max-w-2xl mx-auto mb-12 leading-relaxed font-medium">
-                Experience the next generation of AI assistance. Cortex combines cutting-edge reasoning with creative power to help you build, learn, and create.
-              </p>
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+
+              <motion.p 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.5, duration: 1 }}
+                className="text-lg md:text-2xl text-slate-400 max-w-3xl mx-auto mb-16 leading-relaxed font-medium tracking-tight"
+              >
+                Experience the shift in human-AI collaboration. Cortex isn't just a chatbot—it's an extension of your own cognitive potential.
+              </motion.p>
+              
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.7 }}
+                className="flex flex-col sm:flex-row items-center justify-center gap-6"
+              >
                 <Button 
                   onClick={() => navigate("/chat")}
-                  className="w-full sm:w-auto h-16 px-12 bg-brand hover:bg-brand-dark text-white rounded-2xl font-black text-xl shadow-2xl shadow-brand/30 flex items-center gap-3 group transition-all hover:scale-105"
+                  className="w-full sm:w-auto h-20 px-16 bg-brand hover:bg-brand-dark text-white rounded-2xl font-black text-xl shadow-[0_20px_50px_rgba(124,58,237,0.3)] flex items-center gap-4 group transition-all hover:scale-105 active:scale-95 uppercase italic tracking-tighter"
                 >
-                  Start Chatting
-                  <ArrowRight className="group-hover:translate-x-1 transition-transform" />
+                  Enter the Neural Core
+                  <ArrowRight className="group-hover:translate-x-2 transition-transform" />
                 </Button>
                 <Button 
                   variant="outline"
-                  className="w-full sm:w-auto h-16 px-12 rounded-2xl font-black text-xl border-slate-200 bg-white hover:bg-slate-50 shadow-lg flex items-center gap-3"
+                  className="w-full sm:w-auto h-20 px-16 rounded-2xl font-black text-xl border-white/10 bg-white/5 text-white hover:bg-white/10 backdrop-blur-md flex items-center gap-4 group transition-all"
                 >
-                  <Play size={18} className="fill-slate-900" />
-                  View Demo
+                  <Play size={20} className="fill-white group-hover:scale-110 transition-transform" />
+                  Experience Demo
                 </Button>
-              </div>
-              
-              <div className="mt-16 flex flex-col items-center gap-4">
-                <div className="flex -space-x-3">
-                  {[1, 2, 3, 4, 5].map(i => (
-                    <div key={i} className="w-12 h-12 rounded-full border-4 border-white bg-slate-200 overflow-hidden shadow-xl">
-                      <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${i + 10}`} alt="user" referrerPolicy="no-referrer" />
-                    </div>
-                  ))}
-                </div>
-                <div className="text-sm font-bold text-slate-500">
-                  <span className="text-slate-900">5,000+</span> professionals joined this week
-                </div>
-              </div>
+              </motion.div>
             </motion.div>
 
+            {/* Interactive Preview Container */}
             <motion.div
-              initial={{ opacity: 0, y: 50 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 1, delay: 0.4 }}
-              className="relative mt-20 w-full max-w-5xl"
+              initial={{ opacity: 0, y: 100, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ duration: 1.5, delay: 0.6, ease: [0.16, 1, 0.3, 1] }}
+              className="relative mt-32 w-full max-w-6xl group"
             >
-              <div className="relative z-10 glass rounded-[3rem] p-4 border-white/40 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.1)] overflow-hidden group">
-                <div className="bg-slate-900 rounded-[2.5rem] aspect-[16/10] flex flex-col overflow-hidden relative">
-                  {/* Mock Chat UI */}
-                  <div className="h-12 border-b border-white/10 flex items-center px-6 gap-3">
-                    <div className="flex gap-1.5">
-                      <div className="w-3 h-3 rounded-full bg-red-500/50" />
-                      <div className="w-3 h-3 rounded-full bg-amber-500/50" />
-                      <div className="w-3 h-3 rounded-full bg-emerald-500/50" />
+              <div className="absolute -inset-1 bg-gradient-to-r from-brand to-purple-600 rounded-[4rem] blur opacity-25 group-hover:opacity-40 transition-opacity duration-1000" />
+              <div className="relative z-10 glass-dark rounded-[3.5rem] p-6 border border-white/10 shadow-2xl overflow-hidden">
+                <div className="bg-[#0f111a] rounded-[2.5rem] aspect-[16/9] flex flex-col overflow-hidden relative shadow-inner">
+                  {/* Decorative Header */}
+                  <div className="h-14 border-b border-white/5 flex items-center px-10 gap-4 bg-white/[0.02]">
+                    <div className="flex gap-2">
+                      <div className="w-3 h-3 rounded-full bg-red-500/30" />
+                      <div className="w-3 h-3 rounded-full bg-amber-500/30" />
+                      <div className="w-3 h-3 rounded-full bg-emerald-500/30" />
                     </div>
-                    <div className="h-4 w-32 bg-white/10 rounded-full mx-auto" />
+                    <div className="h-5 w-48 bg-white/5 rounded-full mx-auto animate-pulse" />
+                    <div className="flex gap-4">
+                      <div className="w-6 h-6 rounded-lg bg-white/5" />
+                      <div className="w-6 h-6 rounded-lg bg-white/5" />
+                    </div>
                   </div>
-                  <div className="flex-1 p-8 space-y-6">
-                    <motion.div 
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 1 }}
-                      className="flex gap-4"
-                    >
-                      <div className="w-10 h-10 rounded-xl bg-brand/20 shrink-0" />
-                      <div className="space-y-2 flex-1">
-                        <div className="h-4 w-3/4 bg-white/10 rounded-lg" />
-                        <div className="h-4 w-1/2 bg-white/5 rounded-lg" />
-                      </div>
-                    </motion.div>
-                    <motion.div 
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 1.5 }}
-                      className="flex gap-4 justify-end"
-                    >
-                      <div className="space-y-2 flex-1 flex flex-col items-end">
-                        <div className="h-4 w-2/3 bg-brand/40 rounded-lg" />
-                        <div className="h-4 w-1/3 bg-brand/20 rounded-lg" />
-                      </div>
-                      <div className="w-10 h-10 rounded-xl bg-brand shrink-0" />
-                    </motion.div>
-                    <motion.div 
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: 2, duration: 1, repeat: Infinity, repeatType: "reverse" }}
-                      className="p-6 rounded-3xl bg-white/5 border border-white/10 space-y-4"
-                    >
-                      <div className="flex items-center gap-3">
-                        <Sparkles className="text-brand" size={18} />
-                        <div className="h-3 w-24 bg-brand/30 rounded-full" />
-                      </div>
-                      <div className="space-y-2">
-                        <div className="h-3 w-full bg-white/10 rounded-full" />
-                        <div className="h-3 w-full bg-white/10 rounded-full" />
-                        <div className="h-3 w-4/5 bg-white/5 rounded-full" />
-                      </div>
-                    </motion.div>
+                  
+                  {/* Visual Content Area - Refined Active Chat UI */}
+                  <div className="flex-1 p-10 flex flex-col gap-6 overflow-hidden">
+                    {[
+                      { role: 'ai', text: 'Analyzing neural architecture... vectors mapped.' },
+                      { role: 'user', text: 'Optimize the synthesis protocol for high-latency nodes.' },
+                      { role: 'ai', text: 'Recalibrating throughput... implementation ready.' }
+                    ].map((m, i) => (
+                      <motion.div
+                        key={i}
+                        initial={{ opacity: 0, x: m.role === 'user' ? 20 : -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 2 + (i * 1.2), duration: 0.8 }}
+                        className={cn(
+                          "flex gap-4 items-start",
+                          m.role === 'user' ? "flex-row-reverse" : "flex-row"
+                        )}
+                      >
+                        <div className={cn(
+                          "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border",
+                          m.role === 'ai' ? "bg-brand/20 border-brand/30 text-brand" : "bg-white/10 border-white/10 text-slate-300"
+                        )}>
+                          {m.role === 'ai' ? <Sparkles size={18} /> : <div className="text-xs font-black uppercase">U</div>}
+                        </div>
+                        <div className={cn(
+                          "max-w-[70%] p-5 rounded-3xl text-sm leading-relaxed border shadow-2xl backdrop-blur-sm",
+                          m.role === 'ai' ? "bg-slate-800/80 text-slate-300 border-white/5" : "bg-brand/30 text-white border-brand/40"
+                        )}>
+                          {m.text}
+                          {i === 2 && (
+                            <motion.div 
+                              className="mt-3 flex gap-1"
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              transition={{ delay: 5 }}
+                            >
+                              <div className="w-1.5 h-1.5 bg-brand rounded-full animate-bounce" />
+                              <div className="w-1.5 h-1.5 bg-brand rounded-full animate-bounce delay-75" />
+                              <div className="w-1.5 h-1.5 bg-brand rounded-full animate-bounce delay-150" />
+                            </motion.div>
+                          )}
+                        </div>
+                      </motion.div>
+                    ))}
                   </div>
-                  <div className="p-6 border-t border-white/10">
-                    <div className="h-14 w-full bg-white/5 rounded-2xl border border-white/10 flex items-center px-6 justify-between">
-                      <div className="h-4 w-48 bg-white/10 rounded-full" />
-                      <div className="w-8 h-8 rounded-lg bg-brand flex items-center justify-center">
-                        <ArrowRight size={16} className="text-white" />
+
+                  {/* Input Bar Preview */}
+                  <div className="p-8 border-t border-white/5 bg-white/[0.01]">
+                    <div className="h-20 w-full bg-white/5 rounded-3xl border border-white/10 flex items-center px-8 shadow-2xl relative group/input">
+                      <div className="flex items-center gap-6 flex-1">
+                        <Sparkles size={24} className="text-brand animate-pulse" />
+                        <div className="text-lg font-medium text-slate-500 italic uppercase tracking-wider">Synthesizing query...</div>
+                      </div>
+                      <div className="w-12 h-12 rounded-2xl bg-brand flex items-center justify-center shadow-lg shadow-brand/40 group-hover/input:scale-110 transition-transform">
+                        <ArrowRight size={20} className="text-white" />
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
-              
-              {/* Floating Decorative Elements */}
-              <motion.div 
-                animate={{ y: [0, -20, 0] }}
-                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                className="absolute -top-12 -left-12 glass p-6 rounded-3xl border-white/20 shadow-2xl hidden md:block"
-              >
-                <div className="w-12 h-12 bg-brand rounded-2xl flex items-center justify-center text-white mb-4 shadow-lg"><BrainCircuit size={24} /></div>
-                <div className="h-2 w-24 bg-slate-200 rounded-full mb-2" />
-                <div className="h-2 w-16 bg-slate-100 rounded-full" />
-              </motion.div>
-
-              <motion.div 
-                animate={{ y: [0, 20, 0] }}
-                transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-                className="absolute -bottom-12 -right-12 glass p-6 rounded-3xl border-white/20 shadow-2xl hidden md:block"
-              >
-                <div className="w-12 h-12 bg-purple-500 rounded-2xl flex items-center justify-center text-white mb-4 shadow-lg"><ImageIcon size={24} /></div>
-                <div className="h-2 w-32 bg-slate-200 rounded-full mb-2" />
-                <div className="h-2 w-20 bg-slate-100 rounded-full" />
-              </motion.div>
             </motion.div>
           </div>
         </div>
       </section>
 
-      {/* Features Grid */}
-      <section id="features" className="py-32 px-6 bg-white relative overflow-hidden">
+      {/* Stats Ticker */}
+      <section className="py-16 border-y border-white/5 bg-black/40 backdrop-blur-md">
+         <div className="max-w-7xl mx-auto px-6 overflow-hidden relative">
+            <motion.div 
+              animate={{ x: [0, -1000] }}
+              transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
+              className="flex items-center gap-32 whitespace-nowrap"
+            >
+              {[1, 2, 3, 4, 5, 6].map(i => (
+                <div key={i} className="flex items-center gap-8">
+                  <div className="text-4xl font-black italic tracking-tighter text-white/20 uppercase">Aura Model v.1</div>
+                  <Sparkles size={24} className="text-brand/30" />
+                  <div className="text-4xl font-black italic tracking-tighter text-white/20 uppercase">Neural Synthesis</div>
+                  <Cpu size={24} className="text-purple-500/30" />
+                  <div className="text-4xl font-black italic tracking-tighter text-white/20 uppercase">Hyper-Scaling</div>
+                </div>
+              ))}
+            </motion.div>
+         </div>
+      </section>
+
+      {/* Feature Bento Grid */}
+      <section id="features" className="py-40 px-6 relative overflow-hidden">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-24">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-            >
-              <h2 className="text-4xl md:text-5xl font-black text-slate-900 mb-6 tracking-tight">Everything you need to excel</h2>
-              <p className="text-xl text-slate-500 max-w-2xl mx-auto font-medium">Powerful tools designed to enhance your workflow and spark your creativity.</p>
-            </motion.div>
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-12 mb-32">
+             <div className="max-w-2xl">
+                <motion.div 
+                  initial={{ opacity: 0, x: -20 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  className="text-brand font-black text-xs uppercase tracking-[0.4em] mb-6"
+                >
+                  Core Capabilities
+                </motion.div>
+                <h2 className="text-6xl md:text-8xl font-black text-white tracking-tighter leading-[0.8] uppercase italic">
+                   Architected <br /> for Impact.
+                </h2>
+             </div>
+             <p className="text-lg md:text-xl text-slate-400 max-w-md font-medium leading-relaxed">
+                We've rebuilt the foundational elements of AI interaction to prioritize speed, depth, and creative freedom.
+             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {features.map((f, i) => (
-              <motion.div
-                key={f.title}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: f.delay, duration: 0.5 }}
-                className="p-10 rounded-[3rem] bg-slate-50 hover:bg-white hover:shadow-2xl transition-all duration-500 group border border-transparent hover:border-slate-100"
-              >
-                <div className={cn("w-16 h-16 rounded-2xl flex items-center justify-center mb-8 group-hover:scale-110 group-hover:rotate-6 transition-transform shadow-sm", f.bg, f.color)}>
-                  <f.icon size={32} />
-                </div>
-                <h3 className="text-2xl font-black text-slate-900 mb-4 tracking-tight">{f.title}</h3>
-                <p className="text-slate-500 text-base leading-relaxed font-medium">{f.desc}</p>
-              </motion.div>
-            ))}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-6 h-auto md:h-[900px]">
+            {/* Main Feature */}
+            <motion.div 
+              whileHover={{ y: -10 }}
+              className="md:col-span-8 md:row-span-2 glass-dark p-12 rounded-[3.5rem] border border-white/10 flex flex-col justify-between group overflow-hidden relative"
+            >
+              <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-br from-brand/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div>
+                 <div className="w-20 h-20 bg-brand/20 rounded-[1.5rem] flex items-center justify-center text-brand mb-12 shadow-inner">
+                    <BrainCircuit size={40} />
+                 </div>
+                 <h3 className="text-5xl font-black text-white mb-6 tracking-tighter uppercase italic">Neural Reasoning</h3>
+                 <p className="text-xl text-slate-400 max-w-sm font-medium leading-relaxed">
+                    Our proprietary reasoning chain analyzes context deeper than standard LLMs, delivering precise insights for complex problem solving.
+                 </p>
+              </div>
+              <div className="mt-12 pt-12 border-t border-white/5 grid grid-cols-3 gap-8">
+                 {[
+                   { val: "10K+", label: "Context Window" },
+                   { val: "20ms", label: "Latency" },
+                   { val: "99%", label: "Accuracy" }
+                 ].map(stat => (
+                   <div key={stat.label}>
+                      <div className="text-3xl font-black text-white italic">{stat.val}</div>
+                      <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-1">{stat.label}</div>
+                   </div>
+                 ))}
+              </div>
+            </motion.div>
+
+            {/* Side Feature 1 */}
+            <motion.div 
+              whileHover={{ y: -10 }}
+              className="md:col-span-4 glass-dark p-10 rounded-[3.5rem] border border-white/10 flex flex-col justify-end bg-gradient-to-br from-purple-900/10 to-transparent"
+            >
+               <ImageIcon className="text-purple-400 mb-8" size={32} />
+               <h3 className="text-3xl font-black text-white mb-4 tracking-tighter uppercase italic">Visual Synthesis</h3>
+               <p className="text-slate-400 font-medium">Generate cinema-grade visuals instantly within your chat stream.</p>
+            </motion.div>
+
+            {/* Side Feature 2 */}
+            <motion.div 
+              whileHover={{ y: -10 }}
+              className="md:col-span-4 glass-dark p-10 rounded-[3.5rem] border border-white/10 flex flex-col justify-end bg-gradient-to-br from-indigo-900/10 to-transparent"
+            >
+               <Shield className="text-indigo-400 mb-8" size={32} />
+               <h3 className="text-3xl font-black text-white mb-4 tracking-tighter uppercase italic">Fortress Security</h3>
+               <p className="text-slate-400 font-medium">Conversations are hardware-encrypted and processed on-edge where possible.</p>
+            </motion.div>
+
+            {/* Bottom Row Highlights */}
+            <motion.div 
+              whileHover={{ y: -10 }}
+              className="md:col-span-6 glass-dark p-10 rounded-[3.5rem] border border-white/10 flex items-center justify-between"
+            >
+               <div>
+                  <h3 className="text-2xl font-black text-white mb-2 tracking-tighter uppercase italic">Multi-Modal Core</h3>
+                  <p className="text-sm text-slate-400">Audio, Video, and Image native.</p>
+               </div>
+               <div className="flex -space-x-3">
+                  {[1, 2, 3].map(i => <div key={i} className="w-10 h-10 rounded-xl bg-white/5 border border-white/10" />)}
+               </div>
+            </motion.div>
+
+            <motion.div 
+              whileHover={{ y: -10 }}
+              className="md:col-span-6 bg-brand p-1 rounded-[3.5rem] shadow-[0_20px_40px_rgba(124,58,237,0.3)] group cursor-pointer"
+            >
+               <div className="w-full h-full bg-slate-900 rounded-[3.2rem] flex items-center justify-center p-10 group-hover:bg-brand transition-colors duration-500">
+                  <span className="text-xl font-black text-white uppercase italic tracking-tighter group-hover:scale-110 transition-transform flex items-center gap-4">
+                     Explore All Capabilities
+                     <ArrowRight size={20} />
+                  </span>
+               </div>
+            </motion.div>
           </div>
         </div>
       </section>
 
-      {/* Stats Section */}
-      <section className="py-32 px-6 bg-slate-900 text-white overflow-hidden relative">
-        <div className="absolute top-0 right-0 w-1/2 h-full bg-brand/10 blur-[120px] -z-0" />
-        <div className="max-w-7xl mx-auto relative z-10">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-20 text-center">
+      {/* Pricing: Pure Minimalist */}
+      <section id="pricing" className="py-40 px-6 bg-white text-black">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-32">
+            <h2 className="text-6xl md:text-8xl font-black text-black tracking-tighter leading-[0.8] mb-8 uppercase italic">Pricing <br /> without friction.</h2>
+            <p className="text-xl text-slate-500 font-medium italic">Scalable plans for every stage of intelligence.</p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
             {[
-              { val: "99%", label: "Accuracy Rate", icon: CheckCircle2 },
-              { val: "2M+", label: "Users Worldwide", icon: Users },
-              { val: "50+", label: "AI Models", icon: Layers },
-            ].map((stat, i) => (
+              { name: "Node", price: "0", features: ["1K Standard Tokens", "Gemini 1.5 Flash", "Basic Search", "Web Link Access"], active: false },
+              { name: "Synapse", price: "24", features: ["Unlimited Flow", "Gemini 1.5 Pro", "Priority Latency", "Advanced Reasoning"], active: true },
+              { name: "Nexus", price: "99", features: ["Custom Models", "SSO & Security Hub", "Vip Support", "Team Workspaces"], active: false },
+            ].map((plan, i) => (
               <motion.div
-                key={i}
+                key={plan.name}
                 initial={{ opacity: 0, scale: 0.9 }}
                 whileInView={{ opacity: 1, scale: 1 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
-                className="flex flex-col items-center"
-              >
-                <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center text-brand mb-6">
-                  <stat.icon size={24} />
-                </div>
-                <div className="text-7xl font-black brand-text-gradient mb-4 tracking-tighter">{stat.val}</div>
-                <div className="text-slate-400 font-black uppercase tracking-[0.2em] text-[10px]">{stat.label}</div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Pricing Section */}
-      <section id="pricing" className="py-32 px-6 bg-white">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-20">
-            <h2 className="text-4xl md:text-5xl font-black text-slate-900 mb-4 tracking-tight">Simple, Transparent Pricing</h2>
-            <p className="text-xl text-slate-500 max-w-2xl mx-auto">Choose the plan that fits your needs. No hidden fees.</p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              { name: "Starter", price: "0", features: ["100 messages/month", "Standard models", "Web search", "Basic support"], btn: "Get Started", popular: false },
-              { name: "Pro", price: "20", features: ["Unlimited messages", "Advanced models", "Priority support", "Early access"], btn: "Go Pro", popular: true },
-              { name: "Enterprise", price: "Custom", features: ["Custom models", "Dedicated support", "SLA guarantee", "Team management"], btn: "Contact Sales", popular: false },
-            ].map((plan, i) => (
-              <motion.div
-                key={plan.name}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
                 className={cn(
-                  "p-10 rounded-[3rem] border flex flex-col h-full relative transition-all duration-500 hover:scale-[1.02]",
-                  plan.popular ? "border-brand ring-4 ring-brand/10 shadow-2xl shadow-brand/20 bg-white" : "border-slate-100 shadow-xl bg-slate-50/50"
+                  "p-12 rounded-[4rem] border transition-all duration-500 group",
+                  plan.active 
+                    ? "bg-black text-white border-transparent shadow-[0_40px_80px_rgba(0,0,0,0.2)] scale-105 z-10" 
+                    : "bg-white border-slate-100 shadow-xl hover:shadow-2xl translate-y-4"
                 )}
               >
-                {plan.popular && (
-                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-brand text-white px-6 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg shadow-brand/20">
-                    Most Popular
-                  </div>
-                )}
-                <h3 className="text-2xl font-black text-slate-900 mb-2 tracking-tight">{plan.name}</h3>
-                <div className="flex items-baseline gap-1 mb-10">
-                  <span className="text-4xl font-black text-slate-900">{plan.price === "Custom" ? "" : "$"}</span>
-                  <span className="text-6xl font-black text-slate-900 tracking-tighter">{plan.price}</span>
-                  <span className="text-slate-400 font-bold text-lg">{plan.price === "Custom" ? "" : "/mo"}</span>
+                <div className="text-xs font-black uppercase tracking-[0.4em] mb-12 opacity-50">{plan.name}</div>
+                <div className="flex items-baseline gap-2 mb-16">
+                  <span className="text-7xl font-black tracking-tighter italic">${plan.price}</span>
+                  <span className="text-sm font-black opacity-50 uppercase tracking-widest">/mo</span>
                 </div>
-                <ul className="space-y-5 mb-12 flex-1">
+                <ul className="space-y-6 mb-16">
                   {plan.features.map(f => (
-                    <li key={f} className="flex items-center gap-3 text-slate-600 font-bold text-sm">
-                      <div className="w-5 h-5 rounded-full bg-brand/10 flex items-center justify-center text-brand">
-                        <CheckCircle2 size={12} />
-                      </div>
+                    <li key={f} className="flex items-center gap-4 text-sm font-bold opacity-80 uppercase tracking-tight">
+                      <div className={cn("w-1.5 h-1.5 rounded-full", plan.active ? "bg-brand" : "bg-slate-300")} />
                       {f}
                     </li>
                   ))}
@@ -367,11 +462,11 @@ export default function LandingPage() {
                 <Button 
                   onClick={() => navigate("/auth")}
                   className={cn(
-                    "w-full h-14 rounded-2xl font-black text-lg transition-all",
-                    plan.popular ? "bg-brand hover:bg-brand-dark text-white shadow-xl shadow-brand/30" : "bg-slate-900 hover:bg-slate-800 text-white"
+                    "w-full h-16 rounded-3xl font-black text-sm uppercase tracking-widest transition-all",
+                    plan.active ? "bg-brand hover:bg-white hover:text-black text-white" : "bg-black text-white hover:bg-slate-800"
                   )}
                 >
-                  {plan.btn}
+                  Initiate Plan
                 </Button>
               </motion.div>
             ))}
@@ -380,73 +475,149 @@ export default function LandingPage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-32 px-6">
-        <div className="max-w-5xl mx-auto glass rounded-[3rem] p-12 md:p-20 text-center border-white/40 shadow-2xl relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-full h-full bg-brand/5 -z-10" />
-          <h2 className="text-4xl md:text-6xl font-black text-slate-900 mb-8 leading-tight">
-            Ready to experience <br /> the future?
-          </h2>
-          <p className="text-lg text-slate-500 mb-12 max-w-xl mx-auto">
-            Join thousands of professionals and creatives who are already using Cortex to supercharge their work.
-          </p>
-          <Button 
-            onClick={() => navigate("/chat")}
-            className="h-16 px-12 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-bold text-xl shadow-2xl flex items-center gap-3 mx-auto group"
+      <section className="py-40 px-6 relative overflow-hidden bg-black flex items-center justify-center">
+        <div className="absolute inset-0 bg-brand/5 blur-[120px]" />
+        <div className="max-w-4xl mx-auto text-center relative z-10 px-4">
+          <motion.div
+             initial={{ opacity: 0, scale: 0.8 }}
+             whileInView={{ opacity: 1, scale: 1 }}
+             viewport={{ once: true }}
           >
-            Get Started for Free
-            <ChevronRight className="group-hover:translate-x-1 transition-transform" />
-          </Button>
+             <h2 className="text-[12vw] md:text-[8vw] font-black text-white tracking-tighter leading-[0.8] mb-16 uppercase italic">
+                Connect your <br /> mind.
+             </h2>
+             <Button 
+               onClick={() => navigate("/chat")}
+               className="h-24 px-20 bg-brand hover:bg-brand-dark text-white rounded-3xl font-black text-2xl shadow-[0_20px_60px_rgba(124,58,237,0.4)] flex items-center gap-6 mx-auto group uppercase italic tracking-tighter"
+             >
+               Start Your Evolution
+               <ArrowRight size={24} className="group-hover:translate-x-3 transition-transform" />
+             </Button>
+          </motion.div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="py-24 px-6 bg-slate-900 text-white">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-16">
-          <div className="col-span-1 md:col-span-1">
-            <div className="flex items-center gap-3 mb-8">
-              <div className="w-10 h-10 bg-brand rounded-xl flex items-center justify-center text-white font-black text-xl shadow-lg shadow-brand/20">
-                C
-              </div>
-              <span className="text-2xl font-black tracking-tight">Cortex</span>
-            </div>
-            <p className="text-slate-400 font-bold leading-relaxed text-sm">
-              Empowering human intelligence with advanced AI reasoning and creative synthesis. Join the evolution of work.
+      <section className="py-40 px-8 relative overflow-hidden">
+        <div className="max-w-7xl mx-auto relative z-10">
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-24"
+          >
+            <h2 className="text-5xl md:text-8xl font-black text-white uppercase italic tracking-tighter mb-8 leading-none">
+              The Neural <span className="brand-text-gradient">Advantage</span>
+            </h2>
+            <p className="text-slate-400 text-xl md:text-2xl font-medium max-w-3xl mx-auto leading-relaxed">
+              Precision-engineered tools for the next generation of digital pioneers. Built to scale with your ambition.
             </p>
-          </div>
-          <div>
-            <h4 className="font-black mb-8 uppercase tracking-widest text-[10px] text-slate-500">Product</h4>
-            <ul className="space-y-4 text-slate-400 font-bold text-sm">
-              <li><a href="#features" className="hover:text-brand transition-colors">Features</a></li>
-              <li><a href="#pricing" className="hover:text-brand transition-colors">Pricing</a></li>
-              <li><a href="#" className="hover:text-brand transition-colors">Models</a></li>
-              <li><a href="#" className="hover:text-brand transition-colors">API Docs</a></li>
-            </ul>
-          </div>
-          <div>
-            <h4 className="font-black mb-8 uppercase tracking-widest text-[10px] text-slate-500">Company</h4>
-            <ul className="space-y-4 text-slate-400 font-bold text-sm">
-              <li><a href="#" className="hover:text-brand transition-colors">About Us</a></li>
-              <li><a href="#" className="hover:text-brand transition-colors">Our Blog</a></li>
-              <li><a href="#" className="hover:text-brand transition-colors">Careers</a></li>
-              <li><a href="#" className="hover:text-brand transition-colors">Contact</a></li>
-            </ul>
-          </div>
-          <div>
-            <h4 className="font-black mb-8 uppercase tracking-widest text-[10px] text-slate-500">Connect</h4>
-            <ul className="space-y-4 text-slate-400 font-bold text-sm">
-              <li><a href="#" className="hover:text-brand transition-colors">Twitter / X</a></li>
-              <li><a href="#" className="hover:text-brand transition-colors">GitHub</a></li>
-              <li><a href="#" className="hover:text-brand transition-colors">Discord</a></li>
-              <li><a href="#" className="hover:text-brand transition-colors">LinkedIn</a></li>
-            </ul>
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {[
+              { 
+                icon: BrainCircuit, 
+                title: "Deep Reasoning", 
+                desc: "Recursive chain-of-thought processing for problems that demand absolute analytical precision." 
+              },
+              { 
+                icon: Zap, 
+                title: "Flash Response", 
+                desc: "Sub-millisecond latency for real-time creative flow and lightning-fast iteration cycles." 
+              },
+              { 
+                icon: ShieldCheck, 
+                title: "Neural Privacy", 
+                desc: "Military-grade encryption for all interactions. Your cognitive data remains exclusively yours." 
+              },
+              { 
+                icon: Globe, 
+                title: "Global Context", 
+                desc: "Instant access to real-time global knowledge without the constraints of traditional search." 
+              },
+              { 
+                icon: Box, 
+                title: "Multi-Modal", 
+                desc: "Seamlessly transition between text, image, and code with a unified, high-bandwidth neural model." 
+              },
+              { 
+                icon: Wand2, 
+                title: "Adaptive Learning", 
+                desc: "Continually evolves to match your specific cognitive patterns, preferences, and unique workflows." 
+              }
+            ].map((f, i) => (
+              <motion.div
+                key={f.title}
+                initial={{ opacity: 0, scale: 0.9, y: 30 }}
+                whileInView={{ opacity: 1, scale: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1, duration: 0.6 }}
+                className="glass-dark p-12 rounded-[4rem] border-white/5 hover:border-brand/30 transition-all group relative overflow-hidden"
+              >
+                <div className="absolute top-0 right-0 w-48 h-48 bg-brand/10 rounded-full -mr-24 -mt-24 blur-3xl group-hover:bg-brand/20 transition-colors" />
+                <div className="w-20 h-20 rounded-[2rem] bg-white/5 flex items-center justify-center text-brand mb-10 group-hover:scale-110 transition-transform shadow-inner">
+                  <f.icon size={40} />
+                </div>
+                <h3 className="text-3xl font-black text-white mb-6 uppercase italic tracking-tighter">{f.title}</h3>
+                <p className="text-slate-400 text-lg font-medium leading-relaxed">{f.desc}</p>
+              </motion.div>
+            ))}
           </div>
         </div>
-        <div className="max-w-7xl mx-auto mt-24 pt-10 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-8 text-slate-500 text-[10px] font-black uppercase tracking-widest">
-          <p>© 2026 Cortex AI. All rights reserved.</p>
-          <div className="flex items-center gap-10">
-            <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
-            <a href="#" className="hover:text-white transition-colors">Terms of Service</a>
-            <a href="#" className="hover:text-white transition-colors">Cookie Policy</a>
+      </section>
+
+      <footer className="py-24 px-8 bg-[#02040a] border-t border-white/5 relative z-20">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-20">
+          <div className="lg:col-span-5 flex flex-col items-start italic">
+            <div className="flex items-center gap-3 mb-10 group cursor-pointer" onClick={() => navigate("/")}>
+              <div className="w-14 h-14 bg-brand rounded-2xl flex items-center justify-center text-white shadow-2xl shadow-brand/40 group-hover:scale-110 transition-transform">
+                <Sparkles size={32} />
+              </div>
+              <span className="text-4xl font-black tracking-tighter uppercase text-white group-hover:brand-text-gradient transition-all">Cortex</span>
+            </div>
+            <p className="text-slate-500 font-bold leading-relaxed text-lg max-w-sm mb-12">
+              Engineered for those who refuse to wait for the future. Cortex is the definitive synthesis of speed and deep intelligence.
+            </p>
+            <div className="flex items-center gap-10">
+               {['Twitter', 'Discord', 'Github', 'LinkedIn'].map(s => (
+                 <a key={s} href="#" className="text-xs font-black uppercase tracking-[0.2em] text-slate-600 hover:text-white transition-all transform hover:-translate-y-1">{s}</a>
+               ))}
+            </div>
+          </div>
+          <div className="lg:col-span-7 grid grid-cols-2 md:grid-cols-3 gap-16">
+            <div>
+              <h4 className="font-black mb-10 uppercase tracking-[0.4em] text-xs text-slate-600">Core</h4>
+              <ul className="space-y-6 text-slate-400 font-black text-xs uppercase tracking-widest">
+                <li><a href="#" className="hover:text-brand transition-colors">Neural Hub</a></li>
+                <li><a href="#" className="hover:text-brand transition-colors">Visual SDK</a></li>
+                <li><a href="#" className="hover:text-brand transition-colors">API Lattice</a></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-black mb-10 uppercase tracking-[0.4em] text-xs text-slate-600">Intel</h4>
+              <ul className="space-y-6 text-slate-400 font-black text-xs uppercase tracking-widest">
+                <li><a href="#" className="hover:text-brand transition-colors">Papers</a></li>
+                <li><a href="#" className="hover:text-brand transition-colors">Nexus Docs</a></li>
+                <li><a href="#" className="hover:text-brand transition-colors">Broadcast</a></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-black mb-10 uppercase tracking-[0.4em] text-xs text-slate-600">Company</h4>
+              <ul className="space-y-6 text-slate-400 font-black text-xs uppercase tracking-widest">
+                <li><a href="#" className="hover:text-brand transition-colors">About</a></li>
+                <li><a href="#" className="hover:text-brand transition-colors">Security</a></li>
+                <li><a href="#" className="hover:text-brand transition-colors">Ethics</a></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <div className="max-w-7xl mx-auto mt-40 pt-16 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-12 text-slate-600 text-[10px] font-black uppercase tracking-[0.5em]">
+          <p>© 2026 Cortex Neural Systems. Engineered for the infinite.</p>
+          <div className="flex items-center gap-16">
+            <a href="#" className="hover:text-white transition-all">Privacy</a>
+            <a href="#" className="hover:text-white transition-all">Terms</a>
+            <a href="#" className="hover:text-white transition-all">Governance</a>
           </div>
         </div>
       </footer>

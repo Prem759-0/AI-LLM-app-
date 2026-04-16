@@ -1,12 +1,16 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { FileText, Upload, File, FileCode, FileJson, MoreVertical, Search, Download, Trash2, Share2, HardDrive } from "lucide-react";
+import { Card } from "./ui/card.tsx";
 import { Button } from "./ui/button.tsx";
 import { cn } from "../lib/utils.ts";
 import { Progress } from "./ui/progress.tsx";
+import PremiumModal from "./PremiumModal.tsx";
+import { useState } from "react";
 
 export default function Files() {
-  const [files, setFiles] = React.useState<any[]>([]);
+  const [files, setFiles] = useState<any[]>([]);
+  const [showPremiumModal, setShowPremiumModal] = useState(false);
 
   const getIcon = (type: string) => {
     switch (type) {
@@ -20,6 +24,7 @@ export default function Files() {
 
   return (
     <div className="flex flex-col h-full w-full max-w-6xl mx-auto px-4 md:px-8 py-8 overflow-y-auto no-scrollbar">
+      <PremiumModal isOpen={showPremiumModal} onOpenChange={setShowPremiumModal} />
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
         <motion.div
           initial={{ opacity: 0, x: -20 }}
@@ -37,7 +42,10 @@ export default function Files() {
         </motion.div>
         
         <div className="flex flex-col gap-4">
-          <Button className="bg-brand hover:bg-brand-dark text-white rounded-[1.25rem] px-8 h-14 font-black shadow-xl shadow-brand/20 gap-3 text-lg">
+          <Button 
+            onClick={() => setShowPremiumModal(true)}
+            className="bg-brand hover:bg-brand-dark text-white rounded-[1.25rem] px-8 h-14 font-black shadow-xl shadow-brand/20 gap-3 text-lg"
+          >
             <Upload size={20} />
             Upload File
           </Button>
@@ -114,7 +122,10 @@ export default function Files() {
               Upload documents or datasets to provide context for your AI assistant.
             </p>
           </div>
-          <Button className="bg-brand hover:bg-brand-dark text-white rounded-2xl px-8 h-12 font-black shadow-lg shadow-brand/20">
+          <Button 
+            onClick={() => setShowPremiumModal(true)}
+            className="bg-brand hover:bg-brand-dark text-white rounded-2xl px-8 h-12 font-black shadow-lg shadow-brand/20"
+          >
             Upload First File
           </Button>
         </div>

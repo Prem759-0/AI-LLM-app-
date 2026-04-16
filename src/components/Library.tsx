@@ -4,9 +4,12 @@ import { Library, BookOpen, Star, Clock, Bookmark, Search, MoreVertical, Share2,
 import { Card } from "./ui/card.tsx";
 import { Button } from "./ui/button.tsx";
 import { cn } from "../lib/utils.ts";
+import PremiumModal from "./PremiumModal.tsx";
+import { useState } from "react";
 
 export default function LibraryPage() {
-  const [savedItems, setSavedItems] = React.useState<any[]>([]);
+  const [savedItems, setSavedItems] = useState<any[]>([]);
+  const [showPremiumModal, setShowPremiumModal] = useState(false);
   const sections = [
     { title: "Favorites", icon: Star, count: 0, color: "text-amber-500", bg: "bg-amber-50" },
     { title: "Saved Prompts", icon: Bookmark, count: 0, color: "text-blue-500", bg: "bg-blue-50" },
@@ -16,6 +19,7 @@ export default function LibraryPage() {
 
   return (
     <div className="flex flex-col h-full w-full max-w-6xl mx-auto px-4 md:px-8 py-8 overflow-y-auto no-scrollbar">
+      <PremiumModal isOpen={showPremiumModal} onOpenChange={setShowPremiumModal} />
       <div className="mb-12">
         <motion.div
           initial={{ opacity: 0, x: -20 }}

@@ -2,9 +2,9 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate, useParams, Link, useLocation } from "react-router-dom";
 import { 
   Plus, Search, Compass, Library, FileText, History, 
-  MoreHorizontal, LogOut, PanelLeftClose, PanelLeftOpen,
+  MoreHorizontal, LogOut, PanelLeft, PanelLeftClose, PanelLeftOpen,
   Image as ImageIcon, Sparkles, Code, MessageSquare,
-  Calendar, Clock, ChevronRight
+  Calendar, Clock, ChevronRight, Crown
 } from "lucide-react";
 import { useAuth } from "../App.tsx";
 import api from "../lib/api.ts";
@@ -15,6 +15,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, 
   DropdownMenuTrigger, DropdownMenuSeparator 
 } from "./ui/dropdown-menu.tsx";
+import PremiumModal from "./PremiumModal.tsx";
 import { cn } from "../lib/utils.ts";
 import { format, isToday, isYesterday, subDays, isAfter } from "date-fns";
 
@@ -52,34 +53,39 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
 
   const filteredChats = useMemo(() => {
     if (!searchQuery.trim()) return chats;
+    const q = searchQuery.toLowerCase();
     return chats.filter(chat => 
-      chat.title.toLowerCase().includes(searchQuery.toLowerCase())
+      chat.title.toLowerCase().includes(q)
     );
+  }, [chats, searchQuery]);
+
+  const sortedChats = useMemo(() => {
+    return chats
+      .filter(chat => chat.title.toLowerCase().includes(searchQuery.toLowerCase()))
+      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
   }, [chats, searchQuery]);
 
   const groupedChats = useMemo(() => {
     const groups: { [key: string]: Chat[] } = {
       "Today": [],
       "Yesterday": [],
-      "Previous 7 Days": [],
-      "Older": []
+      "This Week": [],
+      "Archive": []
     };
 
-    filteredChats.forEach(chat => {
+    sortedChats.forEach(chat => {
       const date = new Date(chat.updatedAt);
-      if (isToday(date)) {
-        groups["Today"].push(chat);
-      } else if (isYesterday(date)) {
-        groups["Yesterday"].push(chat);
-      } else if (isAfter(date, subDays(new Date(), 7))) {
-        groups["Previous 7 Days"].push(chat);
-      } else {
-        groups["Older"].push(chat);
-      }
+      const now = new Date();
+      const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+
+      if (diffDays === 0) groups["Today"].push(chat);
+      else if (diffDays === 1) groups["Yesterday"].push(chat);
+      else if (diffDays < 7) groups["This Week"].push(chat);
+      else groups["Archive"].push(chat);
     });
 
     return Object.entries(groups).filter(([_, items]) => items.length > 0);
-  }, [filteredChats]);
+  }, [sortedChats]);
 
   const createNewChat = async () => {
     try {
@@ -94,6 +100,7 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
 
   const [editingChatId, setEditingChatId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
+  const [showPremiumModal, setShowPremiumModal] = useState(false);
 
   const renameChat = async (chatId: string) => {
     if (!editTitle.trim()) return;
@@ -118,9 +125,9 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
 
   const navItems = [
     { icon: Compass, label: "Explore", path: "/explore" },
-    { icon: ImageIcon, label: "Creative Studio", path: "/image" },
+    { icon: ImageIcon, label: "Creative Studio", path: "/image", isPremium: true },
     { icon: Library, label: "Library", path: "/library" },
-    { icon: FileText, label: "Files", path: "/files" },
+    { icon: FileText, label: "Files", path: "/files", isPremium: true },
     { icon: History, label: "History", path: "/history" },
   ];
 
@@ -139,19 +146,23 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
         isOpen ? "w-72 translate-x-0" : "w-72 -translate-x-full md:w-20 md:translate-x-0"
       )}>
       <div className="p-4 flex items-center justify-between">
-        <Link to="/" className={cn("flex items-center gap-3", !isOpen && "md:hidden")}>
-          <div className="w-9 h-9 bg-brand rounded-xl flex items-center justify-center text-white font-bold shadow-lg shadow-brand/20">
-            <Sparkles size={20} />
+        <Link to="/" className="flex items-center gap-3">
+          <div className="w-9 h-9 bg-brand rounded-xl flex items-center justify-center text-white font-black shadow-lg shadow-brand/20 relative overflow-hidden group shrink-0">
+            <div className="absolute inset-0 bg-gradient-to-tr from-brand to-indigo-500 opacity-100" />
+            <Sparkles size={20} className="relative z-10 group-hover:scale-110 transition-transform" />
           </div>
-          <span className="font-black text-xl text-slate-900 tracking-tight">Cortex</span>
+          <span className={cn("font-black text-xl text-slate-800 tracking-tighter uppercase italic truncate pr-2", !isOpen && "md:hidden")}>Cortex</span>
         </Link>
         <Button 
           variant="ghost" 
           size="icon" 
           onClick={() => setIsOpen(!isOpen)}
-          className={cn("text-slate-500 hover:bg-slate-100 rounded-xl", !isOpen && "md:mx-auto")}
+          className={cn(
+            "text-slate-500 hover:bg-white hover:text-brand shadow-sm rounded-xl transition-all border border-slate-100", 
+            !isOpen ? "md:rotate-180 md:mx-auto" : ""
+          )}
         >
-          {isOpen ? <PanelLeftClose size={20} /> : <PanelLeftOpen size={20} />}
+          <PanelLeft size={20} />
         </Button>
       </div>
 
@@ -191,23 +202,33 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
         {navItems.map((item) => {
           const isActive = location.pathname === item.path;
           return (
-            <Link 
+            <button
               key={item.label} 
-              to={item.path}
+              onClick={(e) => {
+                if (item.isPremium) {
+                  e.preventDefault();
+                  setShowPremiumModal(true);
+                  return;
+                }
+                navigate(item.path);
+                if (window.innerWidth < 768) setIsOpen(false);
+              }}
               className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group",
+                "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group",
                 isActive 
                   ? "bg-brand/10 text-brand shadow-sm" 
                   : "text-slate-600 hover:bg-slate-200/50",
                 !isOpen && "md:justify-center md:px-0"
               )}
-              onClick={() => {
-                if (window.innerWidth < 768) setIsOpen(false);
-              }}
             >
               <item.icon size={20} className={cn("transition-colors shrink-0", isActive ? "text-brand" : "group-hover:text-brand")} />
               <span className={cn("text-sm font-bold truncate", !isOpen && "md:hidden")}>{item.label}</span>
-            </Link>
+              {item.isPremium && isOpen && (
+                <div className="ml-auto flex items-center gap-1 bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border border-amber-200">
+                  <Crown size={8} /> Pro
+                </div>
+              )}
+            </button>
           );
         })}
       </nav>
@@ -216,16 +237,23 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
         <ScrollArea className="flex-1 px-2">
           {groupedChats.map(([group, items]) => (
             <div key={group} className="mb-4">
-              <div className={cn("px-4 mb-2 text-[10px] font-black text-slate-400 uppercase tracking-widest", !isOpen && "md:hidden")}>
-                {group}
+              <div className={cn("px-4 mb-2 flex items-center justify-between", !isOpen && "md:hidden")}>
+                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                  {group === "Today" && <div className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse" />}
+                  {group}
+                </div>
+                {group === "Today" && items.length > 0 && (
+                  <div className="text-[8px] font-black text-brand bg-brand/5 px-2 py-0.5 rounded-lg border border-brand/10 uppercase tracking-tighter">Active</div>
+                )}
               </div>
               <div className="space-y-0.5">
                 {items.map((chat) => (
                   <div 
                     key={chat._id}
                     className={cn(
-                      "group flex items-center gap-3 px-3 py-2 rounded-xl transition-all cursor-pointer relative",
-                      id === chat._id ? "bg-white shadow-sm text-brand" : "text-slate-600 hover:bg-slate-200/50"
+                      "group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer relative",
+                      id === chat._id ? "bg-white shadow-sm text-brand" : "text-slate-600 hover:bg-slate-200/50",
+                      !isOpen && "md:justify-center md:px-0"
                     )}
                     onClick={() => {
                       navigate(`/chat/${chat._id}`);
@@ -288,6 +316,7 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
       </div>
 
       <div className="p-4 border-t border-slate-200/50">
+        <PremiumModal isOpen={showPremiumModal} onOpenChange={setShowPremiumModal} />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className={cn(

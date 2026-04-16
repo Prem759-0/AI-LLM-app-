@@ -1,13 +1,16 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { Compass, Search, Sparkles, TrendingUp, Globe, Zap, ArrowRight, Star, Users, Clock } from "lucide-react";
+import { Compass, Search, Sparkles, TrendingUp, Globe, Zap, ArrowRight, Star, Users, Clock, Crown } from "lucide-react";
 import { Card } from "./ui/card.tsx";
 import { Button } from "./ui/button.tsx";
 import { useNavigate } from "react-router-dom";
+import PremiumModal from "./PremiumModal.tsx";
+import { useState } from "react";
 import { cn } from "../lib/utils.ts";
 
 export default function Explore() {
   const navigate = useNavigate();
+  const [showPremiumModal, setShowPremiumModal] = useState(false);
   const categories = [
     { name: "Writing", icon: Sparkles, color: "text-purple-500", bg: "bg-purple-50" },
     { name: "Coding", icon: Zap, color: "text-amber-500", bg: "bg-amber-50" },
@@ -16,16 +19,17 @@ export default function Explore() {
   ];
 
   const featured = [
-    { title: "Code Architect", desc: "Advanced system design and code optimization assistant.", author: "Cortex Team", tags: ["Coding", "System Design"], rating: 4.9, users: "12k" },
+    { title: "Code Architect", desc: "Advanced system design and code optimization assistant.", author: "Cortex Team", tags: ["Coding", "System Design"], rating: 4.9, users: "12k", isPremium: true },
     { title: "Creative Muse", desc: "Unlock your imagination with poetic and descriptive storytelling.", author: "Cortex Team", tags: ["Writing", "Creative"], rating: 4.8, users: "8k" },
-    { title: "Data Synthesizer", desc: "Turn complex datasets into clear, actionable insights.", author: "Cortex Team", tags: ["Analysis", "Data"], rating: 4.7, users: "15k" },
-    { title: "Legal Eagle", desc: "Specialized in document review and legal terminology analysis.", author: "Cortex Team", tags: ["Legal", "Research"], rating: 4.9, users: "5k" },
+    { title: "Data Synthesizer", desc: "Turn complex datasets into clear, actionable insights.", author: "Cortex Team", tags: ["Analysis", "Data"], rating: 4.7, users: "15k", isPremium: true },
+    { title: "Legal Eagle", desc: "Specialized in document review and legal terminology analysis.", author: "Cortex Team", tags: ["Legal", "Research"], rating: 4.9, users: "5k", isPremium: true },
     { title: "Market Strategist", desc: "Trend analysis and competitive landscape mapping.", author: "Cortex Team", tags: ["Business", "Marketing"], rating: 4.6, users: "9k" },
     { title: "UX Researcher", desc: "User persona generation and usability feedback simulation.", author: "Cortex Team", tags: ["Design", "UX"], rating: 4.8, users: "7k" },
   ];
 
   return (
     <div className="flex flex-col h-full w-full max-w-6xl mx-auto px-4 md:px-8 py-8 overflow-y-auto no-scrollbar">
+      <PremiumModal isOpen={showPremiumModal} onOpenChange={setShowPremiumModal} />
       <div className="mb-12">
         <motion.div
           initial={{ opacity: 0, x: -20 }}
@@ -91,7 +95,12 @@ export default function Explore() {
                 <div className="absolute top-0 right-0 w-32 h-32 bg-brand/5 blur-3xl -z-10 group-hover:bg-brand/10 transition-colors" />
                 
                 <div className="flex items-start justify-between mb-6">
-                  <div className="w-14 h-14 bg-brand/10 rounded-2xl flex items-center justify-center text-brand group-hover:scale-110 transition-transform shadow-sm">
+                  <div className="w-14 h-14 bg-brand/10 rounded-2xl flex items-center justify-center text-brand group-hover:scale-110 transition-transform shadow-sm relative">
+                    {item.isPremium && (
+                      <div className="absolute -top-2 -right-2 bg-amber-400 text-white p-1 rounded-full shadow-lg border-2 border-white">
+                        <Crown size={12} className="fill-white" />
+                      </div>
+                    )}
                     <Sparkles size={28} />
                   </div>
                   <div className="flex items-center gap-1.5 bg-white/50 backdrop-blur-sm px-3 py-1.5 rounded-full border border-white/50 shadow-sm">
@@ -119,10 +128,16 @@ export default function Explore() {
                   <Button 
                     variant="ghost" 
                     size="sm" 
-                    className="text-brand hover:bg-brand/10 rounded-xl font-black text-xs px-5 h-10"
-                    onClick={() => navigate("/chat")}
+                    className={cn(
+                      "rounded-xl font-black text-xs px-5 h-10 transition-all",
+                      item.isPremium ? "text-amber-600 hover:bg-amber-50" : "text-brand hover:bg-brand/10"
+                    )}
+                    onClick={() => {
+                      if (item.isPremium) setShowPremiumModal(true);
+                      else navigate("/chat");
+                    }}
                   >
-                    Try now
+                    {item.isPremium ? "Pro access" : "Try now"}
                   </Button>
                 </div>
               </Card>

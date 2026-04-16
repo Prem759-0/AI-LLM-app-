@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Settings, Moon, Sun, Bell, Globe, Cpu, Zap, Shield, Layout } from "lucide-react";
+import { Settings, Moon, Sun, Bell, Globe, Cpu, Zap, Shield, Layout, Crown } from "lucide-react";
 import { Button } from "./ui/button.tsx";
 import { Switch } from "./ui/switch.tsx";
 import { cn } from "../lib/utils.ts";
 import { toast } from "sonner";
+import PremiumModal from "./PremiumModal.tsx";
 
 export default function SettingsPage() {
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');
   const [streaming, setStreaming] = useState(() => localStorage.getItem('streaming') !== 'false');
   const [reasoning, setReasoning] = useState(() => localStorage.getItem('reasoning') === 'true');
+  const [showPremiumModal, setShowPremiumModal] = useState(false);
   const [notifications, setNotifications] = useState({
     email: true,
     alerts: true,
@@ -34,6 +36,7 @@ export default function SettingsPage() {
 
   return (
     <div className="flex flex-col h-full w-full max-w-4xl mx-auto px-4 md:px-8 py-8 overflow-y-auto no-scrollbar">
+      <PremiumModal isOpen={showPremiumModal} onOpenChange={setShowPremiumModal} />
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -102,17 +105,23 @@ export default function SettingsPage() {
               </div>
               <Switch checked={streaming} onCheckedChange={setStreaming} />
             </div>
-            <div className="flex items-center justify-between p-6 rounded-3xl bg-slate-50 border border-slate-100">
+            <div className="flex items-center justify-between p-6 rounded-3xl bg-slate-50 border border-slate-100 group/item hover:border-brand/30 transition-colors">
               <div className="flex items-center gap-4">
-                <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-purple-500 shadow-sm">
+                <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-purple-500 shadow-sm group-hover/item:scale-110 transition-transform">
                   <Shield size={20} />
                 </div>
                 <div>
-                  <p className="font-black text-slate-800">Advanced Reasoning</p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-black text-slate-800">Advanced Reasoning</p>
+                    <div className="bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border border-amber-200">Pro</div>
+                  </div>
                   <p className="text-xs text-slate-500 font-bold">Enable deeper analysis for complex queries.</p>
                 </div>
               </div>
-              <Switch checked={reasoning} onCheckedChange={setReasoning} />
+              <Switch checked={reasoning} onCheckedChange={(val) => {
+                if (val) setShowPremiumModal(true);
+                else setReasoning(false);
+              }} />
             </div>
           </div>
         </section>

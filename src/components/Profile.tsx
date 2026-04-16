@@ -1,15 +1,18 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { User, Mail, Shield, Camera, Save, Key } from "lucide-react";
+import { User, Mail, Shield, Camera, Save, Key, Crown } from "lucide-react";
 import { Button } from "./ui/button.tsx";
 import { useAuth } from "../App.tsx";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar.tsx";
+import PremiumModal from "./PremiumModal.tsx";
 import { toast } from "sonner";
+import { cn } from "../lib/utils.ts";
 
 export default function Profile() {
   const { user, updateUser } = useAuth();
   const [name, setName] = useState(user?.name || "");
   const [isSaving, setIsSaving] = useState(false);
+  const [showPremiumModal, setShowPremiumModal] = useState(false);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -22,6 +25,7 @@ export default function Profile() {
 
   return (
     <div className="flex flex-col h-full w-full max-w-4xl mx-auto px-4 md:px-8 py-8 overflow-y-auto no-scrollbar">
+      <PremiumModal isOpen={showPremiumModal} onOpenChange={setShowPremiumModal} />
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -46,7 +50,11 @@ export default function Profile() {
                 <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name}`} />
                 <AvatarFallback>{user?.name?.[0]}</AvatarFallback>
               </Avatar>
-              <Button size="icon" className="absolute bottom-0 right-0 rounded-full bg-brand hover:bg-brand-dark text-white shadow-lg" onClick={() => toast.info("Profile picture update coming soon!")}>
+              <Button 
+                size="icon" 
+                className="absolute bottom-0 right-0 rounded-full bg-brand hover:bg-brand-dark text-white shadow-lg" 
+                onClick={() => setShowPremiumModal(true)}
+              >
                 <Camera size={18} />
               </Button>
             </div>
