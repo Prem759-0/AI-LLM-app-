@@ -5,9 +5,9 @@ import { fileURLToPath } from "url";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
 import cors from "cors";
-import authRoutes from "./src/routes/auth.ts";
-import chatRoutes from "./src/routes/chat.ts";
-import aiRoutes from "./src/routes/ai.ts";
+import authRoutes from "./src/routes/auth";
+import chatRoutes from "./src/routes/chat";
+import aiRoutes from "./src/routes/ai";
 
 dotenv.config();
 
@@ -16,64 +16,73 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
+// Standard Middleware (Synchronous)
+app.use(express.json());
+app.use(cors());
+
+// Logging middleware
+app.use((req, res, next) => {
+  if (req.path.startsWith("/api")) {
+    console.log(`[API] ${req.method} ${req.path}`);
+  }
+  next();
+});
+
+// Root API health check
+app.get("/api/health", (req, res) => {
+  res.json({ 
+    status: "ok", 
+    environment: process.env.NODE_ENV,
+    dbConnected: mongoose.connection.readyState === 1
+  });
+});
+
+// API Routes (Synchronous mount)
+app.use("/api/auth", authRoutes);
+app.use("/api/chat", chatRoutes);
+app.use("/api/ai", aiRoutes);
+
+// Catch unmatched API routes
+app.all("/api/*", (req, res) => {
+  console.error(`[API 404] No handler for: ${req.method} ${req.path}`);
+  res.status(404).json({ 
+    error: "API endpoint not found",
+    path: req.path,
+    method: req.method
+  });
+});
+
+app.get("/favicon.ico", (req, res) => res.status(204).end());
+
+// Export for serverless (Vercel)
 export default app;
 
-async function startServer() {
-  const PORT = 3000;
-  
-  // Connect to MongoDB
+async function bootstrap() {
+  // Connect to MongoDB (Non-blocking for the routes)
   if (process.env.MONGODB_URI) {
     try {
-      await mongoose.connect(process.env.MONGODB_URI);
-      console.log("Connected to MongoDB");
+      // mongoose.connect returns a promise, we handle it but don't stop the app
+      mongoose.connect(process.env.MONGODB_URI)
+        .then(() => console.log("Connected to MongoDB Atlas"))
+        .catch(err => console.error("MongoDB Atlas connection error:", err));
     } catch (err) {
-      console.error("MongoDB connection error:", err);
+      console.error("Immediate MongoDB error:", err);
     }
   } else {
-    console.warn("MONGODB_URI not found in environment variables. Database features will be disabled.");
+    console.warn("MONGODB_URI not found. Database features will be restricted.");
   }
 
-  app.use(express.json());
-  app.use(cors());
-
-  // Root API healthy check
-  app.get("/api/health", (req, res) => {
-    res.json({ status: "ok", environment: process.env.NODE_ENV });
-  });
-
-  // Logging middleware for debugging routes
-  app.use((req, res, next) => {
-    if (req.path.startsWith("/api")) {
-      console.log(`[API] ${req.method} ${req.path}`);
-    }
-    next();
-  });
-
-  // API Routes
-  app.use("/api/auth", authRoutes);
-  app.use("/api/chat", chatRoutes);
-  app.use("/api/ai", aiRoutes);
-
-  // Catch unmatched API routes
-  app.all("/api/*", (req, res) => {
-    console.error(`[API 404] No handler for: ${req.method} ${req.path}`);
-    res.status(404).json({ 
-      error: "API endpoint not found",
-      path: req.path,
-      method: req.method
-    });
-  });
-
-  // Serve a dummy favicon
-  app.get("/favicon.ico", (req, res) => res.status(204).end());
-
-  // Vite middleware for development
+  // Vite/Static serving setup
   if (process.env.NODE_ENV !== "production") {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: "spa",
-    });
-    app.use(vite.middlewares);
+    try {
+      const vite = await createViteServer({
+        server: { middlewareMode: true },
+        appType: "spa",
+      });
+      app.use(vite.middlewares);
+    } catch (err) {
+      console.error("Vite server error:", err);
+    }
   } else {
     const distPath = path.join(process.cwd(), "dist");
     app.use(express.static(distPath));
@@ -82,14 +91,15 @@ async function startServer() {
     });
   }
 
-  // Only listen if this file is run directly (standard Node/tsx behavior)
-  const isDirectRun = fileURLToPath(import.meta.url) === process.argv[1] || process.env.NODE_ENV === "production";
-  
-  if (isDirectRun) {
+  // Start the server for local development/AI Studio
+  const PORT = 3000;
+  // Use a simple check to determine if we should start listening
+  // In Vercel, this file is imported, so we don't need to listen
+  if (process.env.NODE_ENV !== "production" || process.env.RENDER || process.env.RAILWAY_STATIC_URL || !process.env.VERCEL) {
     app.listen(PORT, "0.0.0.0", () => {
-      console.log(`Server running on http://localhost:${PORT}`);
+      console.log(`Server executing on http://localhost:${PORT}`);
     });
   }
 }
 
-startServer();
+bootstrap();
