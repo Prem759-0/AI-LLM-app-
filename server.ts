@@ -5,9 +5,9 @@ import { fileURLToPath } from "url";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
 import cors from "cors";
-import authRoutes from "./src/routes/auth.ts";
-import chatRoutes from "./src/routes/chat.ts";
-import aiRoutes from "./src/routes/ai.ts";
+import authRoutes from "./src/routes/auth";
+import chatRoutes from "./src/routes/chat";
+import aiRoutes from "./src/routes/ai";
 
 dotenv.config();
 
@@ -16,9 +16,32 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
-// Standard Middleware (Synchronous)
+// Standard Middleware
 app.use(express.json());
 app.use(cors());
+
+// Database connection helper for serverless
+let isConnected = false;
+const connectDB = async () => {
+  if (isConnected) return;
+  if (!process.env.MONGODB_URI) {
+    console.warn("MONGODB_URI is missing!");
+    return;
+  }
+  try {
+    const db = await mongoose.connect(process.env.MONGODB_URI);
+    isConnected = db.connections[0].readyState === 1;
+    console.log("MongoDB Connected");
+  } catch (err) {
+    console.error("MongoDB Connection Error:", err);
+  }
+};
+
+// Middleware to ensure DB is connected for API routes
+app.use("/api", async (req, res, next) => {
+  await connectDB();
+  next();
+});
 
 // Logging middleware
 app.use((req, res, next) => {
@@ -33,11 +56,12 @@ app.get("/api/health", (req, res) => {
   res.json({ 
     status: "ok", 
     environment: process.env.NODE_ENV,
-    dbConnected: mongoose.connection.readyState === 1
+    dbConnected: mongoose.connection.readyState === 1,
+    vercel: !!process.env.VERCEL
   });
 });
 
-// API Routes (Synchronous mount)
+// API Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/ai", aiRoutes);
@@ -68,20 +92,6 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 export default app;
 
 async function bootstrap() {
-  // Connect to MongoDB (Non-blocking for the routes)
-  if (process.env.MONGODB_URI) {
-    try {
-      // mongoose.connect returns a promise, we handle it but don't stop the app
-      mongoose.connect(process.env.MONGODB_URI)
-        .then(() => console.log("Connected to MongoDB Atlas"))
-        .catch(err => console.error("MongoDB Atlas connection error:", err));
-    } catch (err) {
-      console.error("Immediate MongoDB error:", err);
-    }
-  } else {
-    console.warn("MONGODB_URI not found. Database features will be restricted.");
-  }
-
   // Vite/Static serving setup
   if (process.env.NODE_ENV !== "production") {
     try {
@@ -103,9 +113,7 @@ async function bootstrap() {
 
   // Start the server for local development/AI Studio
   const PORT = 3000;
-  // Use a simple check to determine if we should start listening
-  // In Vercel, this file is imported, so we don't need to listen
-  if (process.env.NODE_ENV !== "production" || process.env.RENDER || process.env.RAILWAY_STATIC_URL || !process.env.VERCEL) {
+  if (!process.env.VERCEL) {
     app.listen(PORT, "0.0.0.0", () => {
       console.log(`Server executing on http://localhost:${PORT}`);
     });

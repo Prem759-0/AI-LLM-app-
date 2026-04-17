@@ -1,6 +1,6 @@
 import express from "express";
 import jwt from "jsonwebtoken";
-import { Chat } from "../models/Chat.ts";
+import { Chat } from "../models/Chat";
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || "fallback_secret";
