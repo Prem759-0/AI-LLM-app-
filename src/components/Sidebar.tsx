@@ -44,7 +44,7 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
 
   const fetchChats = async () => {
     try {
-      const res = await api.get("/chat");
+      const res = await api.get("chat");
       setChats(res.data);
     } catch (err) {
       console.error(err);
@@ -89,7 +89,7 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
 
   const createNewChat = async () => {
     try {
-      const res = await api.post("/chat");
+      const res = await api.post("chat");
       setChats([res.data, ...chats]);
       navigate(`/chat/${res.data._id}`);
       if (window.innerWidth < 768) setIsOpen(false);
@@ -105,7 +105,7 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
   const renameChat = async (chatId: string) => {
     if (!editTitle.trim()) return;
     try {
-      await api.patch(`/chat/${chatId}`, { title: editTitle });
+      await api.patch(`chat/${chatId}`, { title: editTitle });
       setChats(chats.map(c => c._id === chatId ? { ...c, title: editTitle } : c));
       setEditingChatId(null);
     } catch (err) {
@@ -115,7 +115,7 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
 
   const deleteChat = async (chatId: string) => {
     try {
-      await api.delete(`/chat/${chatId}`);
+      await api.delete(`chat/${chatId}`);
       setChats(chats.filter(c => c._id !== chatId));
       if (id === chatId) navigate("/");
     } catch (err) {

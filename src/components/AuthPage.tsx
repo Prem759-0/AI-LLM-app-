@@ -20,7 +20,7 @@ export default function AuthPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const endpoint = isLogin ? "/auth/login" : "/auth/signup";
+    const endpoint = isLogin ? "auth/login" : "auth/signup";
     
     try {
       const res = await api.post(endpoint, { email, password, name });
@@ -29,7 +29,9 @@ export default function AuthPage() {
       navigate("/");
     } catch (err: any) {
       console.error("Auth Error:", err);
-      const rawError = err.response?.data?.error || err.message || "Something went wrong";
+      // Handle potential response objects or error messages
+      const errorData = err.response?.data;
+      const rawError = errorData?.error || errorData?.message || err.message || "Something went wrong";
       const errorMsg = typeof rawError === 'object' ? JSON.stringify(rawError) : String(rawError);
       toast.error(errorMsg);
     } finally {

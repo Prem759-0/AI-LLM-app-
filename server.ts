@@ -31,6 +31,11 @@ async function startServer() {
 
   app.use(express.json());
 
+  // Root API healthy check
+  app.get("/api/health", (req, res) => {
+    res.json({ status: "ok", environment: process.env.NODE_ENV });
+  });
+
   // Logging middleware for debugging routes
   app.use((req, res, next) => {
     if (req.path.startsWith("/api")) {
@@ -43,6 +48,16 @@ async function startServer() {
   app.use("/api/auth", authRoutes);
   app.use("/api/chat", chatRoutes);
   app.use("/api/ai", aiRoutes);
+
+  // Catch unmatched API routes to prevent Vite from handling them with 404
+  app.all("/api/*", (req, res) => {
+    console.error(`[API 404] No handler for: ${req.method} ${req.path}`);
+    res.status(404).json({ 
+      error: "API endpoint not found",
+      path: req.path,
+      method: req.method
+    });
+  });
 
   // Serve a dummy favicon if missing to prevent 404 clutter
   app.get("/favicon.ico", (req, res) => res.status(204).end());

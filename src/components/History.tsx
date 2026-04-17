@@ -31,7 +31,7 @@ export default function HistoryPage() {
 
   const fetchChats = async (query = "") => {
     try {
-      const res = await api.get(`/chat${query ? `?q=${query}` : ""}`);
+      const res = await api.get(`chat${query ? `?q=${query}` : ""}`);
       setChats(res.data);
     } catch (err) {
       console.error(err);
@@ -42,7 +42,7 @@ export default function HistoryPage() {
 
   const deleteChat = async (id: string) => {
     try {
-      await api.delete(`/chat/${id}`);
+      await api.delete(`chat/${id}`);
       setChats(chats.filter(c => c._id !== id));
       toast.success("Chat deleted");
     } catch (err) {
@@ -54,7 +54,7 @@ export default function HistoryPage() {
   const deleteSelected = async () => {
     if (!window.confirm(`Delete ${selectedChats.length} selected chats?`)) return;
     try {
-      await Promise.all(selectedChats.map(id => api.delete(`/chat/${id}`)));
+      await Promise.all(selectedChats.map(id => api.delete(`chat/${id}`)));
       setChats(chats.filter(c => !selectedChats.includes(c._id)));
       setSelectedChats([]);
       setIsSelectionMode(false);

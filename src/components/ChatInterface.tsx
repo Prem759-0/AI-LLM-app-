@@ -203,7 +203,7 @@ export default function ChatInterface({ setIsSidebarOpen }: ChatInterfaceProps) 
 
   const fetchChat = async () => {
     try {
-      const res = await api.get(`/chat/${id}`);
+      const res = await api.get(`chat/${id}`);
       setMessages(res.data.messages);
       setChatTitle(res.data.title || "New Chat");
     } catch (err) {
@@ -216,7 +216,7 @@ export default function ChatInterface({ setIsSidebarOpen }: ChatInterfaceProps) 
     if (!id || !chatTitle.trim()) return;
     setIsSaved(false);
     try {
-      await api.patch(`/chat/${id}`, { title: chatTitle });
+      await api.patch(`chat/${id}`, { title: chatTitle });
       setIsEditingTitle(false);
       setIsSaved(true);
       toast.success("Chat renamed");
@@ -328,7 +328,7 @@ export default function ChatInterface({ setIsSidebarOpen }: ChatInterfaceProps) 
     try {
       let chatId = id;
       if (!chatId) {
-        const res = await api.post("/chat");
+        const res = await api.post("chat");
         chatId = res.data._id;
         navigate(`/chat/${chatId}`, { replace: true });
       }
@@ -354,7 +354,7 @@ export default function ChatInterface({ setIsSidebarOpen }: ChatInterfaceProps) 
       setIsTyping(false);
 
       // Update chat in DB
-      await api.patch(`/chat/${chatId}`, {
+      await api.patch(`chat/${chatId}`, {
         messages: finalMessages,
         title: finalInput.slice(0, 30) + (finalInput.length > 30 ? "..." : ""),
       });
@@ -400,7 +400,7 @@ export default function ChatInterface({ setIsSidebarOpen }: ChatInterfaceProps) 
   const clearChat = async () => {
     if (!id) return;
     try {
-      await api.patch(`/chat/${id}`, { messages: [] });
+      await api.patch(`chat/${id}`, { messages: [] });
       setMessages([]);
       toast.success("Chat cleared");
     } catch (err) {
