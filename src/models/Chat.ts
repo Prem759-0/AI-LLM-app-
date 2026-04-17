@@ -13,4 +13,11 @@ const chatSchema = new mongoose.Schema({
   updatedAt: { type: Date, default: Date.now },
 });
 
-export const Chat = mongoose.model("Chat", chatSchema);
+interface IChat extends mongoose.Document {
+  userId: mongoose.Types.ObjectId;
+  title: string;
+  messages: any[];
+  updatedAt: Date;
+}
+
+export const Chat = (mongoose.models.Chat as mongoose.Model<IChat>) || mongoose.model<IChat>("Chat", chatSchema);

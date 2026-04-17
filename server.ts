@@ -5,9 +5,9 @@ import { fileURLToPath } from "url";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
 import cors from "cors";
-import authRoutes from "./src/routes/auth";
-import chatRoutes from "./src/routes/chat";
-import aiRoutes from "./src/routes/ai";
+import authRoutes from "./src/routes/auth.ts";
+import chatRoutes from "./src/routes/chat.ts";
+import aiRoutes from "./src/routes/ai.ts";
 
 dotenv.config();
 
@@ -53,6 +53,16 @@ app.all("/api/*", (req, res) => {
 });
 
 app.get("/favicon.ico", (req, res) => res.status(204).end());
+
+// Global Error Handler
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error("[Global Error Handler]", err);
+  res.status(500).json({
+    error: "Internal Server Error",
+    details: err.message || "Unknown global error",
+    stack: process.env.NODE_ENV === "development" ? err.stack : undefined
+  });
+});
 
 // Export for serverless (Vercel)
 export default app;

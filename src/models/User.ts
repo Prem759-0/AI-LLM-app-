@@ -18,4 +18,11 @@ userSchema.pre("save", async function () {
   }
 });
 
-export const User = mongoose.model("User", userSchema);
+interface IUser extends mongoose.Document {
+  email: string;
+  password: string;
+  name?: string;
+  createdAt: Date;
+}
+
+export const User = (mongoose.models.User as mongoose.Model<IUser>) || mongoose.model<IUser>("User", userSchema);

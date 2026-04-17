@@ -29,11 +29,9 @@ export default function AuthPage() {
       navigate("/");
     } catch (err: any) {
       console.error("Auth Error:", err);
-      // Handle potential response objects or error messages
       const errorData = err.response?.data;
-      const rawError = errorData?.error || errorData?.message || err.message || "Something went wrong";
-      const errorMsg = typeof rawError === 'object' ? JSON.stringify(rawError) : String(rawError);
-      toast.error(errorMsg);
+      const errorMsg = errorData?.details || errorData?.error || errorData?.message || err.message || "Something went wrong";
+      toast.error(String(errorMsg));
     } finally {
       setLoading(false);
     }
