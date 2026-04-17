@@ -5,9 +5,9 @@ import { fileURLToPath } from "url";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
 import cors from "cors";
-import authRoutes from "./src/routes/auth";
-import chatRoutes from "./src/routes/chat";
-import aiRoutes from "./src/routes/ai";
+import authRoutes from "./src/routes/auth.ts";
+import chatRoutes from "./src/routes/chat.ts";
+import aiRoutes from "./src/routes/ai.ts";
 
 dotenv.config();
 
@@ -21,19 +21,29 @@ app.use(express.json());
 app.use(cors());
 
 // Database connection helper for serverless
-let isConnected = false;
+let cachedDb: typeof mongoose | null = null;
+
 const connectDB = async () => {
-  if (isConnected) return;
-  if (!process.env.MONGODB_URI) {
-    console.warn("MONGODB_URI is missing!");
-    return;
+  if (cachedDb && mongoose.connection.readyState === 1) {
+    return cachedDb;
   }
+  
+  if (!process.env.MONGODB_URI) {
+    console.warn("MONGODB_URI is missing from environment variables!");
+    return null;
+  }
+
   try {
-    const db = await mongoose.connect(process.env.MONGODB_URI);
-    isConnected = db.connections[0].readyState === 1;
-    console.log("MongoDB Connected");
+    console.log("Creating new MongoDB connection...");
+    cachedDb = await mongoose.connect(process.env.MONGODB_URI, {
+      bufferCommands: false,
+    });
+    console.log("MongoDB Connection Established");
+    return cachedDb;
   } catch (err) {
     console.error("MongoDB Connection Error:", err);
+    cachedDb = null;
+    return null;
   }
 };
 

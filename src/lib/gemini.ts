@@ -1,9 +1,4 @@
-import { GoogleGenAI, ThinkingLevel } from "@google/genai";
-
-// Initialize Gemini API
-// Note: process.env.GEMINI_API_KEY is automatically injected by the platform
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
-
+// AI Service Utilities
 export const models = {
   flash: "gemini-flash-latest",
   pro: "gemini-3.1-pro-preview",
@@ -12,62 +7,77 @@ export const models = {
 };
 
 export async function* streamChat(messages: { role: string; content: string }[], modelId: string = "text") {
-  let modelName = "gemini-flash-latest";
-  if (modelId === "tech" || modelId === "code") {
-    modelName = "gemini-3.1-pro-preview";
-  } else if (modelId === "thinking") {
-    modelName = "gemini-2.0-flash-thinking-exp";
-  }
+  try {
+    const response = await fetch("/api/ai", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${localStorage.getItem("token")}`
+      },
+      body: JSON.stringify({
+        messages,
+        model: modelId,
+        stream: true
+      })
+    });
 
-  const contents = messages.map(m => ({
-    role: m.role === "assistant" ? "model" : "user",
-    parts: [{ text: m.content }]
-  }));
-
-  const response = await (ai.models as any).generateContentStream({
-    model: modelName,
-    contents: contents,
-    config: {
-      systemInstruction: `You are Cortex AI, a highly advanced and helpful AI assistant. 
-      Current date: Wednesday, April 15, 2026. 
-      
-      CONCISENESS IS MANDATORY: 
-      - If a question is simple, answer in ONE SENTENCE or less.
-      - Never use more than 3 sentences unless explicitly asked for a detailed explanation.
-      - Use bullet points for lists.
-      - Avoid conversational filler (e.g., "Sure, I can help with that", "Here is the information").
-      
-      MEMORY: You have access to the full conversation history. Use it to maintain continuity. If the user refers to "it" or "that", look at the previous messages.`,
-      temperature: 0.7,
-      topP: 0.95,
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.details || error.error || "Failed to connect to AI service");
     }
-  });
 
-  for await (const chunk of response) {
-    if (chunk.text) {
-      yield chunk.text;
+    const reader = response.body?.getReader();
+    if (!reader) throw new Error("No response body");
+
+    const decoder = new TextDecoder();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      const chunk = decoder.decode(value);
+      const lines = chunk.split("\n");
+      
+      for (const line of lines) {
+        if (line.startsWith("data: ")) {
+          const data = line.slice(6);
+          if (data === "[DONE]") return;
+          try {
+            const parsed = JSON.parse(data);
+            if (parsed.content) {
+              yield parsed.content;
+            }
+          } catch (e) {
+            // Incomplete chunk
+          }
+        }
+      }
     }
+  } catch (err: any) {
+    console.error("Stream Error:", err);
+    throw err;
   }
 }
 
 export async function generateImage(prompt: string, size: "1K" | "2K" | "4K" = "1K") {
-  const response = await ai.models.generateContent({
-    model: models.image,
-    contents: {
-      parts: [{ text: prompt }]
-    },
-    config: {
-      imageConfig: {
-        aspectRatio: "1:1",
-        imageSize: size
-      }
-    }
-  });
+  try {
+    const response = await fetch("/api/ai/image", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${localStorage.getItem("token")}`
+      },
+      body: JSON.stringify({ prompt, size })
+    });
 
-  for (const part of response.candidates[0].content.parts) {
-    if (part.inlineData) {
-      return `data:image/png;base64,${part.inlineData.data}`;
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.details || error.error || "Failed to generate image");
     }
+
+    const data = await response.json();
+    return data.imageUrl;
+  } catch (err: any) {
+    console.error("Image Gen Error:", err);
+    throw err;
   }
-  throw new Error("No image generated");
 }
