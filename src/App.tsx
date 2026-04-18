@@ -2,7 +2,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import { Toaster } from "sonner";
-import { ClerkProvider, SignIn, SignUp, SignedIn, SignedOut, useUser, useAuth as useClerkAuth } from "@clerk/clerk-react";
+import { ClerkProvider, SignIn, SignUp, SignedIn, SignedOut, useUser, useAuth as useClerkAuth, AuthenticateWithRedirectCallback } from "@clerk/clerk-react";
 import AuthPage from "./components/AuthPage.tsx";
 import LandingPage from "./components/LandingPage.tsx";
 import ChatInterface from "./components/ChatInterface.tsx";
@@ -179,6 +179,7 @@ export default function App() {
               <Routes>
                 <Route path="/" element={<LandingPage />} />
                 <Route path="/auth/*" element={<AuthPage />} />
+                <Route path="/sso-callback" element={<AuthenticateWithRedirectCallback />} />
                 <Route
                   path="/*"
                   element={
