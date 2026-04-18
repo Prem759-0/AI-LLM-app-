@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate, useParams, Link, useLocation } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import { 
   Plus, Search, Compass, Library, FileText, History, 
   MoreHorizontal, LogOut, PanelLeft, PanelLeftClose, PanelLeftOpen,
@@ -290,29 +291,42 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
       )}
 
       <aside className={cn(
-        "h-full sidebar-glass transition-all duration-300 flex flex-col z-20 fixed md:relative",
+        "h-full bg-slate-50 dark:bg-slate-900 border-r border-slate-200 dark:border-white/5 transition-all duration-300 flex flex-col z-20 fixed md:relative",
         isOpen ? "w-72 translate-x-0" : "w-72 -translate-x-full md:w-20 md:translate-x-0"
       )}>
-      <div className="p-4 flex items-center justify-between">
+      <div className="p-4 flex items-center justify-between border-b border-slate-100 dark:border-white/5 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md">
         <Link to="/" className="flex items-center gap-3">
           <div className="w-10 h-10 bg-brand rounded-2xl flex items-center justify-center text-white font-black shadow-lg shadow-brand/20 relative overflow-hidden group shrink-0">
             <div className="absolute inset-0 bg-gradient-to-tr from-brand to-indigo-500 opacity-100" />
-            <Sparkles size={22} className="relative z-10 group-hover:scale-110 transition-transform" />
+            <Sparkles size={22} className="relative z-10 group-hover:rotate-12 transition-transform" />
           </div>
-          <span className={cn("font-black text-2xl text-slate-900 tracking-tighter uppercase italic truncate pr-4", !isOpen && "md:hidden")}>Cortex</span>
+          <span className={cn("font-black text-2xl text-slate-900 dark:text-white tracking-tighter uppercase italic truncate pr-4 transition-all", !isOpen && "md:hidden")}>Cortex</span>
         </Link>
-        <div className="absolute left-full top-[10%] ml-0 h-[80%] w-4 pointer-events-auto flex items-center group/toggle">
+        
+        {/* Hover Toggle Detective Area */}
+        <div className={cn(
+          "absolute left-full top-0 bottom-0 w-8 flex items-center -ml-4 z-[100] group/detect cursor-pointer",
+          !isOpen && "left-0 ml-14 ml-0 w-12"
+        )}>
            <Button 
-            variant="ghost" 
+            variant="outline" 
             size="icon" 
             onClick={() => setIsOpen(!isOpen)}
             className={cn(
-              "absolute left-0 opacity-0 group-hover/toggle:opacity-100 bg-white shadow-xl rounded-full h-8 w-8 border border-slate-200 -translate-x-1/2 transition-all hover:scale-110 active:scale-95 z-50",
-               !isOpen && "md:opacity-40"
+              "bg-white dark:bg-slate-900 shadow-[0_0_20px_rgba(0,0,0,0.1)] dark:shadow-[0_0_20px_rgba(255,255,255,0.05)] rounded-full h-8 w-8 border border-slate-200 dark:border-white/10 transition-all hover:scale-110 active:scale-95 opacity-0 group-hover/detect:opacity-100 flex items-center justify-center relative z-50",
+              isOpen ? "-translate-x-1/2" : "translate-x-4 border-brand/30"
             )}
           >
-            {isOpen ? <PanelLeftClose size={16} /> : <PanelLeftOpen size={16} />}
+            {isOpen ? <PanelLeftClose size={16} className="text-slate-600 dark:text-slate-400" /> : <PanelLeftOpen size={16} className="text-brand" />}
           </Button>
+
+          {/* Reveal hint bar when closed */}
+          {!isOpen && (
+            <div 
+              className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-12 bg-brand/50 rounded-full blur-[2px] opacity-0 group-hover/detect:opacity-100 transition-opacity ml-2"
+              onClick={() => setIsOpen(true)}
+            />
+          )}
         </div>
       </div>
 
@@ -320,26 +334,28 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
         <Button 
           onClick={createNewChat}
           className={cn(
-            "w-full bg-slate-900 hover:bg-black text-white rounded-2xl py-7 flex items-center gap-3 shadow-[0_10px_20px_-5px_rgba(0,0,0,0.3)] transition-all hover:translate-y-[-2px] active:translate-y-[0px] relative overflow-hidden group",
-            !isOpen && "md:p-0 md:h-12 md:w-12 md:mx-auto md:justify-center rounded-xl"
+            "w-full bg-slate-900 dark:bg-slate-800 hover:bg-black dark:hover:bg-slate-700 text-white rounded-[1.25rem] py-8 flex items-center gap-3 shadow-2xl transition-all border border-white/5 relative overflow-hidden group",
+            !isOpen && "md:p-0 md:h-14 md:w-14 md:mx-auto md:justify-center rounded-2xl"
           )}
         >
-          <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/5 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-          <Plus size={20} className="shrink-0 text-brand" strokeWidth={3} />
-          <span className={cn("font-black text-sm uppercase tracking-wider", !isOpen && "md:hidden")}>New chat</span>
+          <div className="absolute inset-0 bg-gradient-to-r from-brand/20 via-transparent to-brand/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+          <div className="w-8 h-8 rounded-xl bg-brand/20 flex items-center justify-center text-brand shrink-0 group-hover:rotate-90 transition-transform duration-500">
+            <Plus size={20} strokeWidth={3} />
+          </div>
+          <span className={cn("font-black text-sm uppercase tracking-[0.15em]", !isOpen && "md:hidden")}>New Synthesis</span>
         </Button>
       </div>
 
       <div className={cn("px-4 mb-6", !isOpen && "md:hidden")}>
         <div className="relative group">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand transition-colors" size={16} />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-600 group-focus-within:text-brand transition-colors" size={16} />
           <input 
             type="text" 
             placeholder="Search chats..." 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className={cn(
-              "w-full bg-slate-100/50 border-none rounded-xl py-2.5 pl-10 pr-4 text-sm focus:ring-2 focus:ring-brand/20 transition-all outline-none font-medium",
+              "w-full bg-slate-100/50 dark:bg-white/5 border-none rounded-xl py-2.5 pl-10 pr-4 text-sm focus:ring-2 focus:ring-brand/20 transition-all outline-none font-medium text-slate-700 dark:text-slate-300 placeholder:text-slate-400 dark:placeholder:text-slate-600",
               !isOpen && "md:hidden"
             )}
           />
@@ -365,17 +381,31 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
                 if (window.innerWidth < 768) setIsOpen(false);
               }}
               className={cn(
-                "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group",
+                "w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl transition-all group relative overflow-hidden",
                 isActive 
-                  ? "bg-brand/10 text-brand shadow-sm" 
-                  : "text-slate-600 hover:bg-slate-200/50",
+                  ? "bg-brand text-white shadow-lg shadow-brand/20" 
+                  : "text-slate-500 dark:text-slate-400 hover:bg-white dark:hover:bg-white/5 hover:text-brand dark:hover:text-brand",
                 !isOpen && "md:justify-center md:px-0"
               )}
             >
-              <item.icon size={20} className={cn("transition-colors shrink-0", isActive ? "text-brand" : "group-hover:text-brand")} />
-              <span className={cn("text-sm font-bold truncate", !isOpen && "md:hidden")}>{item.label}</span>
+              {isActive && (
+                <motion.div 
+                  layoutId="active-nav-bg"
+                  className="absolute inset-0 bg-gradient-to-r from-brand to-indigo-600 -z-10"
+                />
+              )}
+              <item.icon size={20} className={cn(
+                "shrink-0 transition-transform group-hover:scale-110",
+                isActive ? "text-white" : "text-slate-400 dark:text-slate-500 group-hover:text-brand"
+              )} />
+              <span className={cn(
+                "font-bold text-sm tracking-tight transition-opacity",
+                !isOpen && "md:hidden"
+              )}>
+                {item.label}
+              </span>
               {item.isPremium && isOpen && (
-                <div className="ml-auto flex items-center gap-1 bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border border-amber-200">
+                <div className="ml-auto flex items-center gap-1 bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border border-amber-200 dark:border-amber-800">
                   <Crown size={8} /> Pro
                 </div>
               )}
@@ -433,36 +463,36 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
         </ScrollArea>
       </div>
 
-      <div className="p-4 border-t border-slate-200/50">
+      <div className="p-4 border-t border-slate-200/50 dark:border-white/5">
         <PremiumModal isOpen={showPremiumModal} onOpenChange={setShowPremiumModal} />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className={cn(
-              "w-full h-auto p-2 rounded-xl hover:bg-slate-200/50 transition-colors justify-start gap-3",
+              "w-full h-auto p-2 rounded-xl hover:bg-slate-200/50 dark:hover:bg-white/5 transition-colors justify-start gap-3",
               !isOpen && "md:justify-center md:p-0"
             )}>
-              <Avatar className="h-9 w-9 border-2 border-white shadow-sm shrink-0">
+              <Avatar className="h-9 w-9 border-2 border-white dark:border-slate-800 shadow-sm shrink-0">
                 <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name}`} />
                 <AvatarFallback>{user?.name?.[0]}</AvatarFallback>
               </Avatar>
               <div className={cn("flex-1 text-left overflow-hidden", !isOpen && "md:hidden")}>
-                <div className="text-sm font-bold text-slate-800 truncate">{user?.name}</div>
-                <div className="text-[10px] text-slate-500 truncate">{user?.email}</div>
+                <div className="text-sm font-bold text-slate-800 dark:text-white truncate">{user?.name}</div>
+                <div className="text-[10px] text-slate-500 dark:text-slate-500 truncate">{user?.email}</div>
               </div>
-              <LogOut size={16} className={cn("text-slate-400 shrink-0", !isOpen && "md:hidden")} />
+              <LogOut size={16} className={cn("text-slate-400 dark:text-slate-600 shrink-0", !isOpen && "md:hidden")} />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" side="top" className="w-56 rounded-xl mb-2">
-            <DropdownMenuItem className="rounded-lg cursor-pointer font-bold" onClick={() => navigate("/profile")}>
+          <DropdownMenuContent align="end" side="top" className="w-56 rounded-xl mb-2 dark:bg-slate-900 dark:border-white/10">
+            <DropdownMenuItem className="rounded-lg cursor-pointer font-bold dark:text-slate-300 dark:hover:bg-white/5" onClick={() => navigate("/profile")}>
               Profile Settings
             </DropdownMenuItem>
-            <DropdownMenuItem className="rounded-lg cursor-pointer font-bold" onClick={() => navigate("/settings")}>
+            <DropdownMenuItem className="rounded-lg cursor-pointer font-bold dark:text-slate-300 dark:hover:bg-white/5" onClick={() => navigate("/settings")}>
               App Settings
             </DropdownMenuItem>
-            <DropdownMenuItem className="rounded-lg cursor-pointer font-bold" onClick={() => navigate("/billing")}>
+            <DropdownMenuItem className="rounded-lg cursor-pointer font-bold dark:text-slate-300 dark:hover:bg-white/5" onClick={() => navigate("/billing")}>
               Billing
             </DropdownMenuItem>
-            <DropdownMenuSeparator />
+            <DropdownMenuSeparator className="dark:bg-white/5" />
             <DropdownMenuItem className="text-red-500 focus:text-red-500 rounded-lg cursor-pointer font-bold" onClick={logout}>
               Log out
             </DropdownMenuItem>

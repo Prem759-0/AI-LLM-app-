@@ -7,22 +7,32 @@ import PremiumModal from "./PremiumModal.tsx";
 import api from "../lib/api.ts";
 import { toast } from "sonner";
 import { useAuth } from "../App.tsx";
+import { useSearchParams } from "react-router-dom";
 
 export default function Billing() {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
   const [showPremiumModal, setShowPremiumModal] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // Auto-trigger plan from URL
+  React.useEffect(() => {
+    const plan = searchParams.get("plan");
+    if (plan && !user?.isPro) {
+      handleUpgrade(plan);
+    }
+  }, []);
 
   // Derived usage
   const messagesUsed = user?.usage?.messages || 0;
   const messagesLimit = user?.isPro ? Infinity : 10;
   const imagesUsed = user?.usage?.images || 0;
-  const imagesLimit = user?.isPro ? Infinity : 3;
+  const imagesLimit = user?.isPro ? Infinity : 4;
 
-  const handleUpgrade = async () => {
+  const handleUpgrade = async (planType = "synapse") => {
     try {
       setLoading(true);
-      const res = await api.post("billing/create-checkout-session", { plan: "pro" });
+      const res = await api.post("billing/create-checkout-session", { plan: planType });
       if (res.data.url) {
         window.location.href = res.data.url;
       }
@@ -59,16 +69,30 @@ export default function Billing() {
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand/10 text-brand text-[10px] font-black uppercase tracking-widest mb-4">
                 Current Plan
               </div>
-              <h2 className="text-3xl font-black text-slate-900">Free Starter</h2>
-              <p className="text-slate-500 font-bold mt-1">Perfect for getting started with AI.</p>
+              <h2 className="text-3xl font-black text-slate-900 dark:text-white">{user?.isPro ? "Premium Tier" : "Free Starter"}</h2>
+              <p className="text-slate-500 font-bold mt-1">
+                {user?.isPro ? "You have full access to all neural models." : "Experience the foundational elements of Cortex."}
+              </p>
             </div>
-            <Button 
-              disabled={loading}
-              onClick={handleUpgrade}
-              className="bg-slate-900 hover:bg-slate-800 text-white rounded-2xl px-8 h-14 font-black shadow-xl"
-            >
-              {loading ? "Preparing..." : "Upgrade to Pro"}
-            </Button>
+            {!user?.isPro && (
+              <div className="flex gap-2">
+                <Button 
+                  disabled={loading}
+                  onClick={() => handleUpgrade("synapse")}
+                  className="bg-brand hover:bg-brand-dark text-white rounded-2xl px-6 h-14 font-black shadow-xl"
+                >
+                  {loading ? "..." : "Get Synapse"}
+                </Button>
+                <Button 
+                  disabled={loading}
+                  onClick={() => handleUpgrade("nexus")}
+                  variant="outline"
+                  className="bg-white hover:bg-slate-50 text-slate-900 border-slate-200 rounded-2xl px-6 h-14 font-black shadow-lg"
+                >
+                   Nexus Pro
+                </Button>
+              </div>
+            )}
           </div>
 
           <div className="space-y-6">

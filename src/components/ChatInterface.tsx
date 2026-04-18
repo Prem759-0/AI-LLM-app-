@@ -8,7 +8,7 @@ import {
   Search, Globe, Settings, Share2, Download, 
   Sparkles, Zap, BrainCircuit, CheckCircle2, RefreshCw,
   ChevronDown, Paperclip, Wand2, Brain, History, Copy,
-  Menu, FileJson, FileText, MicOff, Volume2, XCircle,
+  PanelLeftOpen, PanelLeftClose, FileJson, FileText, MicOff, Volume2, XCircle,
   Square, PlusCircle, Bold, Italic, List, Code2, Link as LinkIcon,
   Quote, Eye, Info, Crown, Pencil, Layers
 } from "lucide-react";
@@ -43,10 +43,11 @@ interface Message {
 }
 
 interface ChatInterfaceProps {
+  isSidebarOpen: boolean;
   setIsSidebarOpen: (open: boolean) => void;
 }
 
-export default function ChatInterface({ setIsSidebarOpen }: ChatInterfaceProps) {
+export default function ChatInterface({ isSidebarOpen, setIsSidebarOpen }: ChatInterfaceProps) {
   const { id } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -501,50 +502,53 @@ export default function ChatInterface({ setIsSidebarOpen }: ChatInterfaceProps) 
   ];
 
   return (
-    <div className="flex flex-col h-full bg-[#fcfcff] relative overflow-hidden">
+    <div className="flex flex-col h-full bg-[#fcfcff] dark:bg-[#0b0c14] relative overflow-hidden transition-colors duration-500">
       <PremiumModal isOpen={showPremiumModal} onOpenChange={setShowPremiumModal} />
       {/* Header */}
-      <header className="h-16 flex items-center justify-between border-b border-slate-200/50 mb-2 shrink-0 px-4 md:px-8 bg-white/50 backdrop-blur-md z-30 sticky top-0">
+      <header className="h-16 flex items-center justify-between border-b border-slate-200/50 dark:border-white/5 mb-2 shrink-0 px-4 md:px-8 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md z-30 sticky top-0 transition-colors">
         <div className="flex items-center gap-3 min-w-0 flex-1">
           <Button 
             variant="ghost" 
             size="icon" 
-            onClick={() => setIsSidebarOpen(true)}
-            className="md:hidden text-slate-500 hover:bg-slate-100 rounded-xl shrink-0"
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            className={cn(
+              "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl shrink-0 transition-all",
+              isSidebarOpen && "md:hidden"
+            )}
           >
-            <Menu size={20} />
+            {isSidebarOpen ? <PanelLeftClose size={20} /> : <PanelLeftOpen size={20} />}
           </Button>
           
-          <div className="flex flex-col min-w-0">
-            {isEditingTitle ? (
-              <input
-                autoFocus
-                type="text"
-                value={chatTitle}
-                onChange={(e) => setChatTitle(e.target.value)}
-                onBlur={handleRename}
-                onKeyDown={(e) => e.key === "Enter" && handleRename()}
-                className="text-sm font-black text-slate-800 bg-slate-100/50 border-none rounded-lg px-2 py-0.5 focus:ring-2 focus:ring-brand/20 outline-none w-full max-w-[200px]"
-              />
-            ) : (
-              <div 
-                className="flex items-center gap-1.5 cursor-pointer group/title min-w-0"
-                onClick={() => id && setIsEditingTitle(true)}
-              >
-                <h2 className="text-sm md:text-base font-black text-slate-800 truncate tracking-tight group-hover/title:text-brand transition-colors uppercase italic tracking-tighter pr-4 max-w-[150px] sm:max-w-[250px] md:max-w-md">
-                  {id ? chatTitle : "Neural Genesis"}
-                </h2>
-                {id && <Crown size={10} className="text-amber-500 shrink-0" />}
-              </div>
-            )}
-            
-            <div className="flex items-center gap-2 overflow-hidden mt-0.5">
-              <div className="flex items-center gap-1.5 shrink-0">
-                <div className="hidden sm:block w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Aura v3.0 Core</span>
-              </div>
-              <div className="hidden lg:flex items-center gap-1 bg-slate-100/80 p-0.5 rounded-lg border border-slate-200/50 ml-4">
-                <Button variant="ghost" size="sm" className={cn("h-6 rounded-md text-[9px] font-black uppercase tracking-widest px-2", isCompareMode && "bg-white text-brand shadow-sm")} onClick={() => setIsCompareMode(!isCompareMode)}>Compare</Button>
+            <div className="flex flex-col min-w-0">
+              {isEditingTitle ? (
+                <input
+                  autoFocus
+                  type="text"
+                  value={chatTitle}
+                  onChange={(e) => setChatTitle(e.target.value)}
+                  onBlur={handleRename}
+                  onKeyDown={(e) => e.key === "Enter" && handleRename()}
+                  className="text-sm font-black text-slate-800 dark:text-white bg-slate-100/50 dark:bg-white/5 border-none rounded-lg px-2 py-0.5 focus:ring-2 focus:ring-brand/20 outline-none w-full max-w-[200px]"
+                />
+              ) : (
+                <div 
+                  className="flex items-center gap-1.5 cursor-pointer group/title min-w-0"
+                  onClick={() => id && setIsEditingTitle(true)}
+                >
+                  <h2 className="text-sm md:text-base font-black text-slate-800 dark:text-white truncate tracking-tight group-hover/title:text-brand transition-colors uppercase italic tracking-tighter pr-4 max-w-[150px] sm:max-w-[250px] md:max-w-md">
+                    {id ? chatTitle : "Neural Genesis"}
+                  </h2>
+                  {id && <Crown size={10} className="text-amber-500 shrink-0" />}
+                </div>
+              )}
+              
+              <div className="flex items-center gap-2 overflow-hidden mt-0.5">
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <div className="hidden sm:block w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-[9px] md:text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest whitespace-nowrap">Aura v3.0 Core</span>
+                </div>
+                <div className="hidden lg:flex items-center gap-1 bg-slate-100/80 dark:bg-white/5 p-0.5 rounded-lg border border-slate-200/50 dark:border-white/5 ml-4">
+                  <Button variant="ghost" size="sm" className={cn("h-6 rounded-md text-[9px] font-black uppercase tracking-widest px-2", isCompareMode ? "bg-white dark:bg-slate-800 text-brand shadow-sm" : "text-slate-500 dark:text-slate-400")} onClick={() => setIsCompareMode(!isCompareMode)}>Compare</Button>
                 {isCompareMode && (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -1173,14 +1177,14 @@ export default function ChatInterface({ setIsSidebarOpen }: ChatInterfaceProps) 
                         }}
                         className={cn(
                           "rounded-xl gap-2 px-3 transition-all shrink-0",
-                          isResearchMode ? "bg-brand text-white hover:bg-brand-dark" : "text-brand bg-brand/10 hover:bg-brand/20"
+                          isResearchMode ? "bg-brand text-white hover:bg-brand-dark" : "text-brand bg-brand/10 dark:bg-brand/20 hover:bg-brand/20 dark:hover:bg-brand/30"
                         )}
                       >
                         <BrainCircuit size={16} />
                         <span className="text-xs font-semibold">Research</span>
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent className="rounded-xl p-3 bg-slate-900">
+                    <TooltipContent className="rounded-xl p-3 bg-slate-900 dark:bg-slate-800">
                       <p className="text-xs font-bold text-white uppercase tracking-widest">Deep Synthesis Mode</p>
                     </TooltipContent>
                   </Tooltip>
@@ -1205,7 +1209,7 @@ export default function ChatInterface({ setIsSidebarOpen }: ChatInterfaceProps) 
                     onClick={startListening}
                     className={cn(
                       "transition-all shrink-0 h-10 w-10 rounded-xl border-2",
-                      isListening ? "text-red-500 bg-red-50 border-red-200 animate-pulse shadow-lg shadow-red-500/10" : "text-slate-400 border-slate-100 hover:text-brand hover:bg-slate-50"
+                      isListening ? "text-red-500 bg-red-50 dark:bg-red-900/20 border-red-200 animate-pulse shadow-lg shadow-red-500/10" : "text-slate-400 border-slate-100 dark:border-white/5 hover:text-brand hover:bg-slate-50 dark:hover:bg-white/5"
                     )}
                     title={isListening ? "Stop Microphone" : "Voice Input"}
                   >
@@ -1216,7 +1220,7 @@ export default function ChatInterface({ setIsSidebarOpen }: ChatInterfaceProps) 
                   variant="ghost" 
                   size="icon" 
                   onClick={() => navigate("/image")}
-                  className="text-slate-400 hover:text-brand shrink-0"
+                  className="text-slate-400 dark:text-slate-500 hover:text-brand shrink-0"
                 >
                   <ImageIcon size={18} />
                 </Button>
@@ -1228,8 +1232,8 @@ export default function ChatInterface({ setIsSidebarOpen }: ChatInterfaceProps) 
                     setIsResearchMode(false);
                   }}
                   className={cn(
-                    "text-slate-400 hover:text-amber-500 transition-colors shrink-0",
-                    isCreativeMode && "text-amber-500 bg-amber-50"
+                    "text-slate-400 dark:text-slate-500 hover:text-amber-500 transition-colors shrink-0",
+                    isCreativeMode && "text-amber-500 bg-amber-50 dark:bg-amber-900/20"
                   )}
                 >
                   <Lightbulb size={18} />
@@ -1241,7 +1245,7 @@ export default function ChatInterface({ setIsSidebarOpen }: ChatInterfaceProps) 
                   disabled={!isTyping && !input.trim()}
                   className={cn(
                     "w-full sm:w-10 h-10 rounded-xl sm:rounded-full flex items-center justify-center transition-all shadow-lg",
-                    isTyping ? "bg-red-500 text-white hover:bg-red-600" : (input.trim() ? "bg-brand text-white hover:bg-brand-dark scale-105" : "bg-slate-100 text-slate-300")
+                    isTyping ? "bg-red-500 text-white hover:bg-red-600" : (input.trim() ? "bg-brand text-white hover:bg-brand-dark scale-105" : "bg-slate-100 dark:bg-slate-800 text-slate-300 dark:text-slate-600")
                   )}
                 >
                   {isTyping ? (

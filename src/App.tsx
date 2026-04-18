@@ -191,8 +191,8 @@ export default function App() {
                         <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
                         <main className="flex-1 relative overflow-hidden">
                           <Routes>
-                            <Route path="/chat" element={<ChatInterface setIsSidebarOpen={setIsSidebarOpen} />} />
-                            <Route path="/chat/:id" element={<ChatInterface setIsSidebarOpen={setIsSidebarOpen} />} />
+                            <Route path="/chat" element={<ChatInterface isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} />} />
+                            <Route path="/chat/:id" element={<ChatInterface isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} />} />
                             <Route path="/image" element={<ImageGen />} />
                             <Route path="/explore" element={<Explore />} />
                             <Route path="/library" element={<Library />} />

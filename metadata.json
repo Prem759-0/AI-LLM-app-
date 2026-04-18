@@ -1,6 +1,6 @@
 {
   "name": "Cortex AI",
-  "description": "Premium AI chat experience with real-time streaming and advanced model selection.",
+  "description": "Premium neural synthesis engine for advanced multi-modal chat, creative image generation, and intelligent context management.",
   "requestFramePermissions": ["microphone"],
   "majorCapabilities": ["Chat", "Image Generation", "Voice Input"]
 }

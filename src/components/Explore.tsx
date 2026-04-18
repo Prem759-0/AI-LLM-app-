@@ -7,9 +7,11 @@ import { useNavigate } from "react-router-dom";
 import PremiumModal from "./PremiumModal.tsx";
 import { useState } from "react";
 import { cn } from "../lib/utils.ts";
+import { useTheme } from "../App.tsx";
 
 export default function Explore() {
   const navigate = useNavigate();
+  const { theme } = useTheme();
   const [showPremiumModal, setShowPremiumModal] = useState(false);
   const categories = [
     { name: "Writing", icon: Sparkles, color: "text-purple-500", bg: "bg-purple-50" },
@@ -28,31 +30,31 @@ export default function Explore() {
   ];
 
   return (
-    <div className="flex flex-col h-full w-full max-w-6xl mx-auto px-4 md:px-8 py-8 overflow-y-auto no-scrollbar">
+    <div className="flex flex-col h-full w-full max-w-6xl mx-auto px-4 md:px-8 py-8 overflow-y-auto no-scrollbar transition-colors">
       <PremiumModal isOpen={showPremiumModal} onOpenChange={setShowPremiumModal} />
       <div className="mb-12">
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
         >
-          <h1 className="text-4xl md:text-5xl font-black text-slate-900 flex items-center gap-4">
+          <h1 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white flex items-center gap-4 italic tracking-tighter uppercase">
             <div className="w-12 h-12 bg-brand rounded-2xl flex items-center justify-center text-white shadow-lg shadow-brand/20">
               <Compass size={32} />
             </div>
-            Explore Cortex
+            Explore Synthesis
           </h1>
-          <p className="text-slate-500 mt-4 text-lg max-w-2xl leading-relaxed">
-            Discover specialized AI models, community-crafted prompts, and powerful tools designed to supercharge your productivity.
+          <p className="text-slate-500 dark:text-slate-400 mt-4 text-lg max-w-2xl leading-relaxed italic pr-4">
+            Discover specialized AI models, community-crafted prompts, and powerful tools designed to supercharge your neural productivity.
           </p>
         </motion.div>
       </div>
 
       <div className="relative mb-12 group">
-        <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand transition-colors" size={24} />
+        <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-600 group-focus-within:text-brand transition-colors" size={24} />
         <input 
           type="text" 
           placeholder="Search for models, prompts, or tools..." 
-          className="w-full bg-white border border-slate-200 rounded-[2rem] py-5 pl-14 pr-6 shadow-sm focus:ring-4 focus:ring-brand/10 focus:border-brand outline-none transition-all text-lg"
+          className="w-full bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-white/10 rounded-[2rem] py-5 pl-14 pr-6 shadow-sm focus:ring-4 focus:ring-brand/10 focus:border-brand outline-none transition-all text-lg dark:text-white"
         />
       </div>
 
@@ -64,22 +66,22 @@ export default function Explore() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.1 }}
             className={cn(
-              "p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] flex flex-col items-center justify-center gap-4 cursor-pointer hover:shadow-xl transition-all border border-transparent hover:border-slate-200 group",
-              cat.bg
+              "p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] flex flex-col items-center justify-center gap-4 cursor-pointer hover:shadow-xl transition-all border border-transparent hover:border-slate-200 dark:hover:border-white/10 group",
+              theme === 'dark' ? "bg-white/5" : cat.bg
             )}
           >
-            <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
+            <div className="w-16 h-16 bg-white dark:bg-slate-800 rounded-2xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
               <cat.icon className={cat.color} size={32} />
             </div>
-            <span className="font-black text-slate-800 tracking-tight">{cat.name}</span>
+            <span className="font-black text-slate-800 dark:text-slate-200 tracking-tight uppercase tracking-widest text-xs italic">{cat.name}</span>
           </motion.div>
         ))}
       </div>
 
       <div className="space-y-8 mb-16">
         <div className="flex items-center justify-between">
-          <h2 className="text-3xl font-black text-slate-900 tracking-tight">Featured Models</h2>
-          <Button variant="ghost" className="text-brand font-bold hover:bg-brand/5">
+          <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight italic uppercase tracking-tighter">Featured Models</h2>
+          <Button variant="ghost" className="text-brand font-black text-xs uppercase tracking-widest hover:bg-brand/5 rounded-xl px-4 py-2">
             View all models <ArrowRight size={16} className="ml-2" />
           </Button>
         </div>
@@ -90,37 +92,38 @@ export default function Explore() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: i * 0.05 }}
+              className="h-full"
             >
-              <Card className="p-8 rounded-[2.5rem] glass border-white/50 shadow-lg hover:shadow-2xl transition-all group overflow-hidden relative h-full flex flex-col">
+              <Card className="p-8 rounded-[2.5rem] glass border-white/50 dark:border-white/5 shadow-lg hover:shadow-2xl transition-all group overflow-hidden relative h-full flex flex-col">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-brand/5 blur-3xl -z-10 group-hover:bg-brand/10 transition-colors" />
                 
                 <div className="flex items-start justify-between mb-6">
-                  <div className="w-14 h-14 bg-brand/10 rounded-2xl flex items-center justify-center text-brand group-hover:scale-110 transition-transform shadow-sm relative">
+                  <div className="w-14 h-14 bg-brand/10 dark:bg-brand/20 rounded-2xl flex items-center justify-center text-brand group-hover:scale-110 transition-transform shadow-sm relative">
                     {item.isPremium && (
-                      <div className="absolute -top-2 -right-2 bg-amber-400 text-white p-1 rounded-full shadow-lg border-2 border-white">
+                      <div className="absolute -top-2 -right-2 bg-amber-400 text-white p-1 rounded-full shadow-lg border-2 border-white dark:border-slate-900">
                         <Crown size={12} className="fill-white" />
                       </div>
                     )}
                     <Sparkles size={28} />
                   </div>
-                  <div className="flex items-center gap-1.5 bg-white/50 backdrop-blur-sm px-3 py-1.5 rounded-full border border-white/50 shadow-sm">
+                  <div className="flex items-center gap-1.5 bg-white/50 dark:bg-white/5 backdrop-blur-sm px-3 py-1.5 rounded-full border border-white/50 dark:border-white/5 shadow-sm">
                     <Star size={14} className="text-amber-500 fill-amber-500" />
-                    <span className="text-xs font-black text-slate-700">{item.rating}</span>
+                    <span className="text-xs font-black text-slate-700 dark:text-slate-300">{item.rating}</span>
                   </div>
                 </div>
 
-                <h3 className="text-xl font-black text-slate-900 mb-3 group-hover:text-brand transition-colors">{item.title}</h3>
-                <p className="text-sm text-slate-500 mb-6 leading-relaxed flex-1">{item.desc}</p>
+                <h3 className="text-xl font-black text-slate-900 dark:text-white mb-3 group-hover:text-brand transition-colors uppercase italic tracking-tighter">{item.title}</h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 leading-relaxed flex-1 font-medium">{item.desc}</p>
                 
                 <div className="flex flex-wrap gap-2 mb-8">
                   {item.tags.map(tag => (
-                    <span key={tag} className="text-[10px] font-black px-3 py-1 rounded-full bg-slate-100 text-slate-500 uppercase tracking-widest">{tag}</span>
+                    <span key={tag} className="text-[9px] font-black px-3 py-1 rounded-full bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-500 uppercase tracking-widest">{tag}</span>
                   ))}
                 </div>
 
-                <div className="flex items-center justify-between pt-6 border-t border-slate-100 mt-auto">
+                <div className="flex items-center justify-between pt-6 border-t border-slate-100 dark:border-white/5 mt-auto">
                   <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                    <div className="flex items-center gap-1.5 text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-widest">
                       <Users size={12} />
                       {item.users}
                     </div>
@@ -129,8 +132,8 @@ export default function Explore() {
                     variant="ghost" 
                     size="sm" 
                     className={cn(
-                      "rounded-xl font-black text-xs px-5 h-10 transition-all",
-                      item.isPremium ? "text-amber-600 hover:bg-amber-50" : "text-brand hover:bg-brand/10"
+                      "rounded-xl font-black text-[10px] uppercase tracking-widest px-5 h-10 transition-all",
+                      item.isPremium ? "text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/10" : "text-brand hover:bg-brand/10"
                     )}
                     onClick={() => {
                       if (item.isPremium) setShowPremiumModal(true);
@@ -146,13 +149,12 @@ export default function Explore() {
         </div>
       </div>
 
-      {/* Trending Section */}
-      <section className="bg-slate-900 rounded-[3rem] p-12 text-white relative overflow-hidden mb-12">
+      <section className="bg-slate-900 dark:bg-brand/5 border border-transparent dark:border-brand/20 rounded-[3rem] p-12 text-white relative overflow-hidden mb-12 shadow-2xl transition-colors">
         <div className="absolute top-0 right-0 w-1/2 h-full bg-brand/10 blur-[120px] -z-0" />
         <div className="relative z-10">
           <div className="flex items-center gap-3 mb-8">
             <TrendingUp className="text-brand" size={32} />
-            <h2 className="text-3xl font-black tracking-tight">Trending Prompts</h2>
+            <h2 className="text-3xl font-black tracking-tighter italic uppercase">Neural Trends</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {[
@@ -163,11 +165,11 @@ export default function Explore() {
             ].map((prompt, i) => (
               <div 
                 key={i} 
-                className="p-6 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all cursor-pointer flex items-center justify-between group"
+                className="p-6 rounded-3xl bg-white/5 border border-white/10 dark:border-white/5 hover:bg-white/10 dark:hover:bg-brand/10 transition-all cursor-pointer flex items-center justify-between group"
                 onClick={() => navigate("/chat")}
               >
-                <span className="text-sm font-medium text-slate-300 group-hover:text-white transition-colors line-clamp-1">{prompt}</span>
-                <ArrowRight size={18} className="text-slate-500 group-hover:text-brand group-hover:translate-x-1 transition-all" />
+                <span className="text-sm font-black text-slate-300 group-hover:text-white transition-colors line-clamp-1 italic">{prompt}</span>
+                <ArrowRight size={18} className="text-slate-500 group-hover:text-brand group-hover:translate-x-2 transition-all" />
               </div>
             ))}
           </div>

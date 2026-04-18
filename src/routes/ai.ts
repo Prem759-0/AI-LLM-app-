@@ -174,7 +174,7 @@ router.post("/image", ClerkExpressRequireAuth(), async (req: any, res) => {
     await user.save();
   }
 
-  const FREE_IMAGE_LIMIT = 3;
+  const FREE_IMAGE_LIMIT = 4;
   if (!user.isPro && user.usage.images >= FREE_IMAGE_LIMIT) {
     return res.status(200).json({ 
       limitReached: true,
@@ -184,38 +184,67 @@ router.post("/image", ClerkExpressRequireAuth(), async (req: any, res) => {
 
   await User.findOneAndUpdate({ clerkId: userId }, { $inc: { "usage.images": 1 } });
   
-  if (!process.env.GEMINI_API_KEY) {
-    return res.status(500).json({ error: "GEMINI_API_KEY not configured for image generation" });
-  }
+  // Try Gemini first as primary image provider
+  if (process.env.GEMINI_API_KEY) {
+    try {
+      const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" }); 
 
-  try {
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" }); // Using a known good model for config pass
-
-    const result = await model.generateContent({
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      generationConfig: {
-        // @ts-ignore - Image generation config
-        imageConfig: {
-          aspectRatio: "1:1",
-          imageSize: size
+      const result = await model.generateContent({
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        generationConfig: {
+          // @ts-ignore
+          imageConfig: {
+            aspectRatio: "1:1",
+            imageSize: size
+          }
         }
-      }
-    });
+      });
 
-    const part = result.response.candidates?.[0]?.content.parts[0];
-    if (part?.inlineData) {
-      return res.json({ imageUrl: `data:image/png;base64,${part.inlineData.data}` });
+      const part = result.response.candidates?.[0]?.content.parts[0];
+      if (part?.inlineData) {
+        return res.json({ imageUrl: `data:image/png;base64,${part.inlineData.data}` });
+      }
+    } catch (geminiErr: any) {
+      console.error("[AI Image] Gemini failed, falling back to OpenRouter:", geminiErr.message);
     }
-    
-    throw new Error("No image data returned from Gemini");
-  } catch (err: any) {
-    console.error("[AI Image] Error:", err.message);
-    res.status(500).json({ 
-      error: "Image generation failed",
-      details: err.message 
-    });
   }
+
+  // Fallback to OpenRouter for images (e.g., Stable Diffusion)
+  if (process.env.OPENROUTER_API_KEY) {
+    try {
+      const response = await axios.post(
+        "https://openrouter.ai/api/v1/chat/completions",
+        {
+          model: "openai/dall-e-3", // Or another image model if supported via their unified API
+          messages: [{ role: "user", content: prompt }],
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+            "Content-Type": "application/json",
+          }
+        }
+      );
+      
+      const imageUrl = response.data.choices[0]?.message?.content; // OpenRouter sometimes returns URLs in message for image models
+      if (imageUrl && (imageUrl.startsWith("http") || imageUrl.startsWith("data:"))) {
+        return res.json({ imageUrl });
+      }
+      
+      // If it returned text but not a URL, it might just be a completion
+      if (response.data.choices[0]?.message?.content) {
+        // Fallback or error if not a real image
+      }
+    } catch (orErr: any) {
+      console.error("[AI Image] OpenRouter failed:", orErr.message);
+    }
+  }
+
+  res.status(500).json({ 
+    error: "Image generation failed",
+    details: "All providers failed. Please check your API keys." 
+  });
 });
 
 export default router;

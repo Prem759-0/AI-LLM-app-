@@ -16,10 +16,16 @@ router.post("/create-checkout-session", ClerkExpressRequireAuth(), async (req: a
     return res.status(500).json({ error: "Stripe is not configured" });
   }
 
+  const plans = {
+    synapse: { name: "Synapse", price: 2400 },
+    nexus: { name: "Nexus", price: 9900 }
+  };
+
+  const selectedPlan = plans[plan as keyof typeof plans] || plans.synapse;
+
   try {
     let user = await User.findOne({ clerkId: userId });
     if (!user) {
-      // In a real app, you might want to fetch email from Clerk if not in DB
       user = new User({ clerkId: userId, email: "syncing..." });
       await user.save();
     }
@@ -31,10 +37,10 @@ router.post("/create-checkout-session", ClerkExpressRequireAuth(), async (req: a
           price_data: {
             currency: "usd",
             product_data: {
-              name: "Cortex Pro Plan",
-              description: "Unlimited AI messages and priority access",
+              name: `Cortex ${selectedPlan.name} Plan`,
+              description: `Full access to ${selectedPlan.name} features and neural models.`,
             },
-            unit_amount: 2400, // $24.00
+            unit_amount: selectedPlan.price,
             recurring: { interval: "month" },
           },
           quantity: 1,
@@ -46,6 +52,7 @@ router.post("/create-checkout-session", ClerkExpressRequireAuth(), async (req: a
       customer_email: user.email === "syncing..." ? undefined : user.email,
       metadata: {
         clerkId: userId,
+        plan: selectedPlan.name
       },
     });
 

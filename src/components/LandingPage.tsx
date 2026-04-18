@@ -60,6 +60,15 @@ export default function LandingPage() {
     }
   ];
 
+  const handlePlanInitiate = (plan: string) => {
+    if (plan === 'node') {
+      navigate('/chat');
+    } else {
+      // For paid plans, we try to go to checkout directly or via auth if not logged in
+      navigate('/billing?plan=' + plan);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#02040a] selection:bg-brand/30 relative text-white selection:text-white">
       {/* Dynamic Background */}
@@ -461,13 +470,13 @@ export default function LandingPage() {
                   ))}
                 </ul>
                 <Button 
-                  onClick={() => navigate("/auth")}
+                  onClick={() => handlePlanInitiate(plan.name.toLowerCase())}
                   className={cn(
                     "w-full h-16 rounded-3xl font-black text-sm uppercase tracking-widest transition-all",
                     plan.active ? "bg-brand hover:bg-white hover:text-black text-white" : "bg-black text-white hover:bg-slate-800"
                   )}
                 >
-                  Initiate Plan
+                  Initiate {plan.name} Plan
                 </Button>
               </motion.div>
             ))}
