@@ -68,11 +68,13 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setAuthToken(token);
         if (token) localStorage.setItem("token", token);
         // Fetch additional user data from our backend
-        const res = await api.get('billing/status').catch(e => {
-          console.error("Billing status fetch failed", e);
-          return { data: { isPro: false, usage: { messages: 0, images: 0 } } };
-        });
-        setUserData(res.data);
+        try {
+          const res = await api.get('billing/status');
+          setUserData(res.data);
+        } catch (e) {
+          console.error("Billing status fetch failed, using default free tier", e);
+          setUserData({ isPro: false, usage: { messages: 0, images: 0, files: 0 } });
+        }
       } else {
         setAuthToken(null);
         localStorage.removeItem("token");

@@ -1,13 +1,14 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mail, Lock, User, ArrowRight, Sparkles, ShieldCheck, AtSign } from "lucide-react";
-import { useSignIn, useSignUp } from "@clerk/clerk-react";
+import { Mail, Lock, User as UserIcon, ArrowRight, Sparkles, ShieldCheck, AtSign } from "lucide-react";
+import { useSignIn, useSignUp, useUser } from "@clerk/clerk-react";
 import { Button } from "./ui/button.tsx";
 import { Input } from "./ui/input.tsx";
 import { toast } from "sonner";
 
 export default function AuthPage() {
+  const { isLoaded: isUserLoaded, user } = useUser();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
@@ -22,6 +23,13 @@ export default function AuthPage() {
   const { isLoaded: isSignInLoaded, signIn, setActive: setSignInActive } = useSignIn();
   const { isLoaded: isSignUpLoaded, signUp, setActive: setSignUpActive } = useSignUp();
   const navigate = useNavigate();
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (isUserLoaded && user) {
+      navigate("/");
+    }
+  }, [isUserLoaded, user, navigate]);
 
   const handleLogin = async () => {
     if (!isSignInLoaded) return;
@@ -304,7 +312,7 @@ export default function AuthPage() {
               >
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Full Name</label>
                 <div className="relative group">
-                  <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand transition-colors" size={18} />
+                  <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand transition-colors" size={18} />
                   <Input
                     type="text"
                     placeholder="Enter your name"

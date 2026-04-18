@@ -4,30 +4,42 @@ import Stripe from "stripe";
 import { User } from "../models/User.ts";
 
 const router = express.Router();
-let stripe: Stripe;
-try {
-  stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
-    apiVersion: "2024-11-20.acacia" as any,
-  });
-} catch (err) {
-  console.error("Critical: Stripe failed to initialize. Check your API keys.");
-}
+
+// Helper to get Stripe client lazily and safely
+const getStripe = () => {
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key) {
+    console.error("[Stripe] CRITICAL: STRIPE_SECRET_KEY is missing from environment.");
+    return null;
+  }
+  try {
+    return new Stripe(key, {
+      apiVersion: "2024-11-20.acacia" as any,
+    });
+  } catch (err) {
+    console.error("[Stripe] Initialization Failed:", err);
+    return null;
+  }
+};
 
 router.post("/create-checkout-session", ClerkExpressRequireAuth(), async (req: any, res) => {
   const { userId } = req.auth;
   const { plan = "synapse" } = req.body;
 
-  console.log(`[Billing] Creating checkout session for user ${userId}, plan: ${plan}`);
+  console.log(`[Billing] Initiate checkout for user ${userId}, plan requested: ${plan}`);
 
-  if (!process.env.STRIPE_SECRET_KEY) {
-    console.error("[Billing] STRIPE_SECRET_KEY is missing.");
-    return res.status(500).json({ error: "Stripe configuration error. Please try again later." });
+  const stripe = getStripe();
+  if (!stripe) {
+    return res.status(500).json({ 
+      error: "Payment configuration error", 
+      details: "The server is not configured for payments. Please provide STRIPE_SECRET_KEY." 
+    });
   }
 
   const plans = {
     synapse: { name: "Synapse", price: 2400 },
     nexus: { name: "Nexus", price: 9900 },
-    pro: { name: "Synapse", price: 2400 } // fallback for legacy 'pro' calls
+    pro: { name: "Synapse", price: 2400 } // fallback
   };
 
   const selectedPlan = plans[plan as keyof typeof plans] || plans.synapse;
@@ -35,7 +47,7 @@ router.post("/create-checkout-session", ClerkExpressRequireAuth(), async (req: a
   try {
     let user = await User.findOne({ clerkId: userId });
     if (!user) {
-      console.log(`[Billing] User ${userId} not found in DB, creating entry.`);
+      console.log(`[Billing] User ${userId} record not found, bootstrapping entry...`);
       user = new User({ clerkId: userId, email: "syncing..." });
       await user.save();
     }
@@ -48,7 +60,7 @@ router.post("/create-checkout-session", ClerkExpressRequireAuth(), async (req: a
             currency: "usd",
             product_data: {
               name: `Cortex ${selectedPlan.name} Tier`,
-              description: `Full access to ${selectedPlan.name} neural models and high-bandwidth synthesis.`,
+              description: `Full high-bandwidth access to ${selectedPlan.name} neural models.`,
             },
             unit_amount: selectedPlan.price,
             recurring: { interval: "month" },
@@ -68,12 +80,12 @@ router.post("/create-checkout-session", ClerkExpressRequireAuth(), async (req: a
       billing_address_collection: 'auto',
     });
 
-    console.log(`[Billing] Session created: ${session.id}`);
+    console.log(`[Billing] Subscription session created: ${session.id}`);
     res.json({ url: session.url });
   } catch (err: any) {
-    console.error("[Stripe Checkout Error]", err);
+    console.error("[Billing] Stripe Session Failure:", err.message);
     res.status(500).json({ 
-      error: "Payment gateway error", 
+      error: "Synthesis payment gateway failure", 
       details: err.message,
       type: err.type 
     });
@@ -83,10 +95,24 @@ router.post("/create-checkout-session", ClerkExpressRequireAuth(), async (req: a
 router.get("/status", ClerkExpressRequireAuth(), async (req: any, res) => {
   try {
     const { userId } = req.auth;
+    if (!userId) {
+      return res.status(401).json({ error: "Auth required" });
+    }
+
     const user = await User.findOne({ clerkId: userId });
-    res.json({ isPro: user?.isPro || false, usage: user?.usage });
-  } catch (err) {
-    res.status(500).json({ error: "Server error" });
+    
+    // If user not in DB yet, return basic free tier
+    if (!user) {
+      return res.json({ 
+        isPro: false, 
+        usage: { messages: 0, images: 0, files: 0 } 
+      });
+    }
+
+    res.json({ isPro: user.isPro || false, usage: user.usage });
+  } catch (err: any) {
+    console.error("[Billing Status Error]", err.message);
+    res.status(500).json({ error: "Unable to retrieve neural bandwidth status" });
   }
 });
 

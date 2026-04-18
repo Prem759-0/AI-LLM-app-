@@ -1,11 +1,4 @@
 // AI Service Utilities
-export const models = {
-  flash: "gemini-flash-latest",
-  pro: "gemini-3.1-pro-preview",
-  image: "gemini-2.5-flash-image",
-  thinking: "gemini-2.0-flash-thinking-exp",
-};
-
 export async function* streamChat(messages: { role: string; content: string }[], modelId: string = "text") {
   try {
     const response = await fetch("/api/ai", {

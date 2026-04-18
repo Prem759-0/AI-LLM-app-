@@ -1,6 +1,5 @@
 import express from "express";
 import axios from "axios";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { ClerkExpressRequireAuth } from "@clerk/clerk-sdk-node";
 import { User } from "../models/User.ts";
 
@@ -56,7 +55,7 @@ router.post("/", ClerkExpressRequireAuth(), async (req: any, res) => {
     await user.save();
   }
 
-  // Free Tier Policy: 10 messages, 4 images
+  // Free Tier Policy: 15 messages, 4 images
   if (!user.isPro) {
     if (user.usage.messages >= FREE_MESSAGE_LIMIT) {
       return res.status(200).json({ 
@@ -69,7 +68,7 @@ router.post("/", ClerkExpressRequireAuth(), async (req: any, res) => {
   // Update usage
   await User.findOneAndUpdate({ clerkId: userId }, { $inc: { "usage.messages": 1 } });
   
-  // Use OpenRouter Exclusively for Chat as requested
+  // Use OpenRouter Exclusively as requested
   try {
     const model = OPENROUTER_MODELS[requestedModel as keyof typeof OPENROUTER_MODELS] || OPENROUTER_MODELS.text;
     const response = await axios.post(
@@ -86,7 +85,7 @@ router.post("/", ClerkExpressRequireAuth(), async (req: any, res) => {
         headers: {
           Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
           "Content-Type": "application/json",
-          "HTTP-Referer": "https://neural-genesis.vercel.app",
+          "HTTP-Referer": "https://cortex.ai",
           "X-Title": "Cortex AI"
         },
         responseType: stream ? "stream" : "json",
@@ -138,7 +137,7 @@ router.post("/", ClerkExpressRequireAuth(), async (req: any, res) => {
 });
 
 router.post("/image", ClerkExpressRequireAuth(), async (req: any, res) => {
-  const { prompt, size = "1K" } = req.body;
+  const { prompt } = req.body;
   const { userId } = req.auth;
 
   // Usage check
@@ -156,69 +155,43 @@ router.post("/image", ClerkExpressRequireAuth(), async (req: any, res) => {
     });
   }
 
+  if (!process.env.OPENROUTER_API_KEY) {
+    return res.status(500).json({ error: "Missing OpenRouter API Key for synthesis" });
+  }
+
   await User.findOneAndUpdate({ clerkId: userId }, { $inc: { "usage.images": 1 } });
   
-  // Try OpenRouter for images as requested
-  if (process.env.OPENROUTER_API_KEY) {
-    try {
-      // Using a known image capable model on OpenRouter if available, 
-      // otherwise falling back to Stable Diffusion style models
-      const response = await axios.post(
-        "https://openrouter.ai/api/v1/chat/completions",
-        {
-          model: "openai/dall-e-3", 
-          messages: [{ role: "user", content: prompt }],
+  try {
+    // OpenRouter for images using DALL-E 3 as requested (or fall back to other models)
+    const response = await axios.post(
+      "https://openrouter.ai/api/v1/chat/completions",
+      {
+        model: "openai/dall-e-3", 
+        messages: [{ role: "user", content: prompt }],
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+          "Content-Type": "application/json",
         },
-        {
-          headers: {
-            Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          timeout: 60000 // Image gen can be slow
-        }
-      );
-      
-      const content = response.data.choices[0]?.message?.content;
-      // DALL-E models on OpenRouter typically return a single message with the URL or an image block
-      if (content && (content.includes("http") || content.startsWith("data:"))) {
-        const urlMatch = content.match(/https?:\/\/[^\s]+/) || [content];
-        return res.json({ imageUrl: urlMatch[0] });
+        timeout: 90000 
       }
-    } catch (orErr: any) {
-      console.error("[AI Image] OpenRouter failed:", orErr.response?.data || orErr.message);
+    );
+    
+    const content = response.data.choices[0]?.message?.content;
+    if (content && (content.includes("http") || content.startsWith("data:"))) {
+      const urlMatch = content.match(/https?:\/\/[^\s]+/) || [content];
+      return res.json({ imageUrl: urlMatch[0] });
+    } else {
+       throw new Error("No image generated in response");
     }
+  } catch (orErr: any) {
+    console.error("[AI Image] OpenRouter failed:", orErr.response?.data || orErr.message);
+    res.status(500).json({ 
+      error: "Synthesis failed",
+      details: orErr.message || "The neural visual synthesis attempt failed via OpenRouter."
+    });
   }
-
-  // Final fallback to Gemini only if OpenRouter failed and the user didn't strictly forbid it as a secondary backup
-  if (process.env.GEMINI_API_KEY) {
-    try {
-      const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" }); 
-
-      const result = await model.generateContent({
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-        generationConfig: {
-          // @ts-ignore
-          imageConfig: {
-            aspectRatio: "1:1",
-            imageSize: size
-          }
-        }
-      });
-
-      const part = result.response.candidates?.[0]?.content.parts[0];
-      if (part?.inlineData) {
-        return res.json({ imageUrl: `data:image/png;base64,${part.inlineData.data}` });
-      }
-    } catch (geminiErr: any) {
-      console.error("[AI Image] Gemini backup failed:", geminiErr.message);
-    }
-  }
-
-  res.status(500).json({ 
-    error: "Synthesis failed",
-    details: "All neural visual providers failed. Please check your system configuration." 
-  });
 });
 
 export default router;

@@ -6,7 +6,7 @@ import { Button } from "./ui/button.tsx";
 import { Input } from "./ui/input.tsx";
 import { Card } from "./ui/card.tsx";
 import { toast } from "sonner";
-import { generateImage } from "../lib/gemini.ts";
+import { generateImage } from "../lib/aiService.ts";
 import PremiumModal from "./PremiumModal.tsx";
 import { cn } from "../lib/utils.ts";
 

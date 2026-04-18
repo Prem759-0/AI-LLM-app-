@@ -26,7 +26,7 @@ import {
 import { useAuth } from "../App.tsx";
 import api from "../lib/api.ts";
 import { cn } from "../lib/utils.ts";
-import { streamChat } from "../lib/gemini.ts";
+import { streamChat } from "../lib/aiService.ts";
 import { 
   Tooltip,
   TooltipContent,
