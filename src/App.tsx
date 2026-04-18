@@ -117,8 +117,8 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
   if (loading) return (
-    <div className="h-screen w-full flex items-center justify-center bg-[#f8f7ff]">
-      <div className="w-10 h-10 border-4 border-brand border-t-transparent rounded-full animate-spin" />
+    <div className="h-screen w-full flex items-center justify-center bg-[#f8f7ff] dark:bg-slate-950">
+      <div className="w-10 h-10 border-4 border-brand border-t-transparent rounded-full animate-spin shadow-[0_0_20px_rgba(124,58,237,0.3)]" />
     </div>
   );
   if (!user) return <Navigate to="/auth" />;

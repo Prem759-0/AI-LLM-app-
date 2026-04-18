@@ -94,7 +94,7 @@ function SortableChatItem({
       {...attributes}
       className={cn(
         "group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer relative",
-        isActive ? "bg-white shadow-sm text-brand" : "text-slate-600 hover:bg-slate-200/50",
+        isActive ? "bg-white dark:bg-slate-800 shadow-sm text-brand" : "text-slate-600 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-white/5",
         !isOpen && "md:justify-center md:px-0"
       )}
       onClick={() => onNavigate(chat._id)}
@@ -113,7 +113,7 @@ function SortableChatItem({
             if (e.key === "Enter") onRename(chat._id);
             if (e.key === "Escape") setEditingChatId(null);
           }}
-          className="flex-1 bg-white border border-brand/30 rounded px-1 text-sm outline-none"
+          className="flex-1 bg-white dark:bg-slate-800 border border-brand/30 rounded px-1 text-sm outline-none dark:text-slate-200"
           onClick={(e) => e.stopPropagation()}
         />
       ) : (
@@ -127,9 +127,9 @@ function SortableChatItem({
             <MoreHorizontal size={14} />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-40 rounded-xl">
+        <DropdownMenuContent align="end" className="w-40 rounded-xl dark:bg-slate-900 dark:border-white/10">
           <DropdownMenuItem 
-            className="text-sm rounded-lg font-bold"
+            className="text-sm rounded-lg font-bold dark:text-slate-300 dark:hover:bg-white/5"
             onClick={(e) => {
               e.stopPropagation();
               setEditingChatId(chat._id);
@@ -285,7 +285,7 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
       {/* Mobile Overlay */}
       {isOpen && (
         <div 
-          className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-10 md:hidden"
+          className="fixed inset-0 bg-slate-900/40 backdrop-blur-[2px] z-10 md:hidden"
           onClick={() => setIsOpen(false)}
         />
       )}

@@ -6,37 +6,40 @@ import { User } from "../models/User.ts";
 
 const router = express.Router();
 
-const FREE_MESSAGE_LIMIT = 10;
+const FREE_MESSAGE_LIMIT = 15;
 
 const OPENROUTER_MODELS = {
   text: "google/gemma-2-9b-it:free",
   code: "qwen/qwen-2.5-coder-32b-instruct:free",
   roleplay: "gryphe/mythomax-l2-13b:free",
   tech: "nvidia/llama-3.1-nemotron-70b-instruct:free",
-  translate: "google/gemma-2-9b-it:free"
-};
-
-const GEMINI_MODELS = {
-  text: "gemini-3-flash-preview",
-  code: "gemini-3.1-pro-preview",
-  tech: "gemini-3-flash-preview",
-  thinking: "gemini-3-flash-preview",
+  translate: "google/gemma-2-9b-it:free",
+  vision: "google/gemini-flash-1.5-exp:free"
 };
 
 router.post("/summarize", ClerkExpressRequireAuth(), async (req, res) => {
   const { messages } = req.body;
-  if (!process.env.GEMINI_API_KEY) return res.status(500).json({ error: "Missing API Key" });
+  if (!process.env.OPENROUTER_API_KEY) return res.status(500).json({ error: "Missing OpenRouter API Key" });
 
   try {
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ 
-      model: "gemini-3-flash-preview",
-      systemInstruction: "Summarize the following chat conversation into a very short, catchy title (max 6 words). Output ONLY the title."
-    });
-
-    const context = messages.map((m: any) => `${m.role}: ${m.content}`).join("\n");
-    const result = await model.generateContent(context);
-    res.json({ summary: result.response.text().replace(/^"|"$/g, '') });
+    const response = await axios.post(
+      "https://openrouter.ai/api/v1/chat/completions",
+      {
+        model: OPENROUTER_MODELS.text,
+        messages: [
+          ...messages,
+          { role: "system", content: "Summarize the previous conversation into a very short, catchy title (max 6 words). Output ONLY the title." }
+        ],
+        stream: false
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+          "Content-Type": "application/json"
+        }
+      }
+    );
+    res.json({ summary: response.data.choices[0]?.message?.content?.replace(/^"|"$/g, '') || "New Conversation" });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
@@ -53,63 +56,30 @@ router.post("/", ClerkExpressRequireAuth(), async (req: any, res) => {
     await user.save();
   }
 
-    if (!user.isPro && user.usage.messages >= FREE_MESSAGE_LIMIT) {
+  // Free Tier Policy: 10 messages, 4 images
+  if (!user.isPro) {
+    if (user.usage.messages >= FREE_MESSAGE_LIMIT) {
       return res.status(200).json({ 
         limitReached: true,
-        message: "You've reached your free message limit. Please upgrade to Pro to continue."
+        message: "You've reached your free message limit. Please upgrade to Pro for unlimited synthesis."
       });
-    }
-
-  // Update usage (optimistic, but good enough for now)
-  await User.findOneAndUpdate({ clerkId: userId }, { $inc: { "usage.messages": 1 } });
-  
-  // Try Gemini first if key is available
-  if (process.env.GEMINI_API_KEY) {
-    try {
-      const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-      const modelName = GEMINI_MODELS[requestedModel as keyof typeof GEMINI_MODELS] || GEMINI_MODELS.text;
-      const model = genAI.getGenerativeModel({ 
-        model: modelName,
-        systemInstruction: "You are Cortex AI, a highly advanced assistant. Be concise."
-      });
-
-      const contents = messages.map((m: any) => ({
-        role: m.role === "assistant" ? "model" : "user",
-        parts: [{ text: m.content }]
-      }));
-
-      if (stream) {
-        res.setHeader("Content-Type", "text/event-stream");
-        res.setHeader("Cache-Control", "no-cache");
-        res.setHeader("Connection", "keep-alive");
-
-        const result = await model.generateContentStream({ contents });
-        for await (const chunk of result.stream) {
-          const text = chunk.text();
-          if (text) {
-            res.write(`data: ${JSON.stringify({ content: text })}\n\n`);
-          }
-        }
-        res.write("data: [DONE]\n\n");
-        return res.end();
-      } else {
-        const result = await model.generateContent({ contents });
-        return res.json({ choices: [{ message: { content: result.response.text() } }] });
-      }
-    } catch (geminiErr: any) {
-      console.error("[AI] Gemini failed, falling back to OpenRouter:", geminiErr.message);
-      // Fall through to OpenRouter logic
     }
   }
 
-  // OpenRouter Fallback
+  // Update usage
+  await User.findOneAndUpdate({ clerkId: userId }, { $inc: { "usage.messages": 1 } });
+  
+  // Use OpenRouter Exclusively for Chat as requested
   try {
     const model = OPENROUTER_MODELS[requestedModel as keyof typeof OPENROUTER_MODELS] || OPENROUTER_MODELS.text;
     const response = await axios.post(
       "https://openrouter.ai/api/v1/chat/completions",
       {
         model,
-        messages,
+        messages: [
+          { role: "system", content: "You are Cortex AI, a highly advanced neural assistant. Be concise, intelligent, and refined." },
+          ...messages
+        ],
         stream,
       },
       {
@@ -117,7 +87,7 @@ router.post("/", ClerkExpressRequireAuth(), async (req: any, res) => {
           Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
           "Content-Type": "application/json",
           "HTTP-Referer": "https://neural-genesis.vercel.app",
-          "X-Title": "Neural Genesis"
+          "X-Title": "Cortex AI"
         },
         responseType: stream ? "stream" : "json",
       }
@@ -133,7 +103,7 @@ router.post("/", ClerkExpressRequireAuth(), async (req: any, res) => {
         for (const line of lines) {
           if (line.startsWith("data: ")) {
             const message = line.slice(6);
-            if (message === "[DONE]") {
+            if (message.trim() === "[DONE]") {
               res.write("data: [DONE]\n\n");
               return;
             }
@@ -149,15 +119,19 @@ router.post("/", ClerkExpressRequireAuth(), async (req: any, res) => {
       });
 
       response.data.on("end", () => res.end());
+      response.data.on("error", (err: any) => {
+        console.error("[OpenRouter Stream Error]", err);
+        res.end();
+      });
     } else {
       res.json(response.data);
     }
   } catch (err: any) {
     const errorDetails = err.response?.data || err.message;
-    console.error("[AI] Final Fallback Error:", errorDetails);
+    console.error("[Cortex AI] OpenRouter Error:", errorDetails);
     res.status(500).json({ 
-      error: "AI service error",
-      details: "Both Gemini and OpenRouter failed.",
+      error: "Neural interface failure",
+      details: "The neural engine (OpenRouter) is currently unavailable.",
       raw: errorDetails 
     });
   }
@@ -178,13 +152,44 @@ router.post("/image", ClerkExpressRequireAuth(), async (req: any, res) => {
   if (!user.isPro && user.usage.images >= FREE_IMAGE_LIMIT) {
     return res.status(200).json({ 
       limitReached: true,
-      message: "You've reached your free image limit. Please upgrade to Pro to continue."
+      message: "Neural visual synthesis limit reached. Upgrade to Pro for unlimited generation."
     });
   }
 
   await User.findOneAndUpdate({ clerkId: userId }, { $inc: { "usage.images": 1 } });
   
-  // Try Gemini first as primary image provider
+  // Try OpenRouter for images as requested
+  if (process.env.OPENROUTER_API_KEY) {
+    try {
+      // Using a known image capable model on OpenRouter if available, 
+      // otherwise falling back to Stable Diffusion style models
+      const response = await axios.post(
+        "https://openrouter.ai/api/v1/chat/completions",
+        {
+          model: "openai/dall-e-3", 
+          messages: [{ role: "user", content: prompt }],
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          timeout: 60000 // Image gen can be slow
+        }
+      );
+      
+      const content = response.data.choices[0]?.message?.content;
+      // DALL-E models on OpenRouter typically return a single message with the URL or an image block
+      if (content && (content.includes("http") || content.startsWith("data:"))) {
+        const urlMatch = content.match(/https?:\/\/[^\s]+/) || [content];
+        return res.json({ imageUrl: urlMatch[0] });
+      }
+    } catch (orErr: any) {
+      console.error("[AI Image] OpenRouter failed:", orErr.response?.data || orErr.message);
+    }
+  }
+
+  // Final fallback to Gemini only if OpenRouter failed and the user didn't strictly forbid it as a secondary backup
   if (process.env.GEMINI_API_KEY) {
     try {
       const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
@@ -206,44 +211,13 @@ router.post("/image", ClerkExpressRequireAuth(), async (req: any, res) => {
         return res.json({ imageUrl: `data:image/png;base64,${part.inlineData.data}` });
       }
     } catch (geminiErr: any) {
-      console.error("[AI Image] Gemini failed, falling back to OpenRouter:", geminiErr.message);
-    }
-  }
-
-  // Fallback to OpenRouter for images (e.g., Stable Diffusion)
-  if (process.env.OPENROUTER_API_KEY) {
-    try {
-      const response = await axios.post(
-        "https://openrouter.ai/api/v1/chat/completions",
-        {
-          model: "openai/dall-e-3", // Or another image model if supported via their unified API
-          messages: [{ role: "user", content: prompt }],
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
-            "Content-Type": "application/json",
-          }
-        }
-      );
-      
-      const imageUrl = response.data.choices[0]?.message?.content; // OpenRouter sometimes returns URLs in message for image models
-      if (imageUrl && (imageUrl.startsWith("http") || imageUrl.startsWith("data:"))) {
-        return res.json({ imageUrl });
-      }
-      
-      // If it returned text but not a URL, it might just be a completion
-      if (response.data.choices[0]?.message?.content) {
-        // Fallback or error if not a real image
-      }
-    } catch (orErr: any) {
-      console.error("[AI Image] OpenRouter failed:", orErr.message);
+      console.error("[AI Image] Gemini backup failed:", geminiErr.message);
     }
   }
 
   res.status(500).json({ 
-    error: "Image generation failed",
-    details: "All providers failed. Please check your API keys." 
+    error: "Synthesis failed",
+    details: "All neural visual providers failed. Please check your system configuration." 
   });
 });
 

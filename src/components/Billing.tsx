@@ -25,7 +25,7 @@ export default function Billing() {
 
   // Derived usage
   const messagesUsed = user?.usage?.messages || 0;
-  const messagesLimit = user?.isPro ? Infinity : 10;
+  const messagesLimit = user?.isPro ? Infinity : 15;
   const imagesUsed = user?.usage?.images || 0;
   const imagesLimit = user?.isPro ? Infinity : 4;
 
@@ -44,34 +44,34 @@ export default function Billing() {
   };
 
   return (
-    <div className="flex flex-col h-full w-full max-w-4xl mx-auto px-4 md:px-8 py-8 overflow-y-auto no-scrollbar">
+    <div className="flex flex-col h-full w-full max-w-4xl mx-auto px-4 md:px-8 py-8 overflow-y-auto no-scrollbar bg-[#fcfcff] dark:bg-[#0b0c14] transition-colors duration-500">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="mb-12"
       >
-        <h1 className="text-4xl md:text-5xl font-black text-slate-900 flex items-center gap-4">
+        <h1 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white flex items-center gap-4 italic tracking-tighter uppercase">
           <div className="w-12 h-12 bg-brand rounded-2xl flex items-center justify-center text-white shadow-lg shadow-brand/20">
             <CreditCard size={32} />
           </div>
-          Billing & Subscription
+          Neural Billing
         </h1>
-        <p className="text-slate-500 mt-4 text-lg leading-relaxed">
-          Manage your subscription plan, payment methods, and billing history.
+        <p className="text-slate-500 dark:text-slate-500 mt-4 text-lg leading-relaxed font-medium">
+          Manage your neural bandwidth, payment vectors, and synthesis history.
         </p>
       </motion.div>
 
       <div className="grid grid-cols-1 gap-8">
-        <section className="glass p-8 rounded-[2.5rem] border-white/50 shadow-xl relative overflow-hidden">
+        <section className="glass dark:bg-slate-900/50 p-8 rounded-[2.5rem] border-white/50 dark:border-white/5 shadow-xl relative overflow-hidden">
           <div className="absolute top-0 right-0 w-32 h-32 bg-brand/5 rounded-full -mr-16 -mt-16 blur-3xl" />
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
             <div>
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand/10 text-brand text-[10px] font-black uppercase tracking-widest mb-4">
-                Current Plan
+                Current State
               </div>
-              <h2 className="text-3xl font-black text-slate-900 dark:text-white">{user?.isPro ? "Premium Tier" : "Free Starter"}</h2>
-              <p className="text-slate-500 font-bold mt-1">
-                {user?.isPro ? "You have full access to all neural models." : "Experience the foundational elements of Cortex."}
+              <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight uppercase italic">{user?.isPro ? "Neural Synapse" : "Neural Node"}</h2>
+              <p className="text-slate-500 dark:text-slate-500 font-bold mt-1 uppercase text-[10px] tracking-widest">
+                {user?.isPro ? "Full high-bandwidth neural access enabled." : "Foundational synthesis capacity active."}
               </p>
             </div>
             {!user?.isPro && (
@@ -79,17 +79,17 @@ export default function Billing() {
                 <Button 
                   disabled={loading}
                   onClick={() => handleUpgrade("synapse")}
-                  className="bg-brand hover:bg-brand-dark text-white rounded-2xl px-6 h-14 font-black shadow-xl"
+                  className="bg-brand hover:bg-brand-dark text-white rounded-2xl px-6 h-14 font-black shadow-xl uppercase tracking-widest text-xs"
                 >
-                  {loading ? "..." : "Get Synapse"}
+                  {loading ? "..." : "Sync Synapse"}
                 </Button>
                 <Button 
                   disabled={loading}
                   onClick={() => handleUpgrade("nexus")}
                   variant="outline"
-                  className="bg-white hover:bg-slate-50 text-slate-900 border-slate-200 rounded-2xl px-6 h-14 font-black shadow-lg"
+                  className="bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-900 dark:text-white border-slate-200 dark:border-white/10 rounded-2xl px-6 h-14 font-black shadow-lg uppercase tracking-widest text-xs"
                 >
-                   Nexus Pro
+                   Sync Nexus
                 </Button>
               </div>
             )}
@@ -173,31 +173,31 @@ export default function Billing() {
           </section>
         </div>
 
-        <section className="glass p-8 rounded-[2.5rem] border-white/50 shadow-xl">
-          <h3 className="text-xl font-black text-slate-900 mb-8 flex items-center gap-3">
+        <section className="glass dark:bg-slate-900/50 p-8 rounded-[2.5rem] border-white/50 dark:border-white/5 shadow-xl">
+          <h3 className="text-xl font-black text-slate-900 dark:text-white mb-8 flex items-center gap-3 uppercase italic tracking-tighter">
             <History size={20} className="text-brand" />
-            Billing History
+            Synthesis History
           </h3>
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full text-left">
               <thead>
-                <tr className="text-left border-b border-slate-100">
-                  <th className="pb-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Date</th>
-                  <th className="pb-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Amount</th>
-                  <th className="pb-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
-                  <th className="pb-4 text-right"></th>
+                <tr className="border-b border-slate-100 dark:border-white/5">
+                  <th className="pb-4 text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-[0.2em]">Timestamp</th>
+                  <th className="pb-4 text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-[0.2em]">Credits</th>
+                  <th className="pb-4 text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-[0.2em]">Status</th>
+                  <th className="pb-4"></th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-50">
+              <tbody className="divide-y divide-slate-50 dark:divide-white/5">
                 {[
-                  { date: "Apr 1, 2026", amount: "$0.00", status: "Paid" },
-                  { date: "Mar 1, 2026", amount: "$0.00", status: "Paid" },
+                  { date: "Apr 1, 2026", amount: "$0.00", status: "Success" },
+                  { date: "Mar 1, 2026", amount: "$0.00", status: "Success" },
                 ].map((invoice, i) => (
-                  <tr key={i} className="group">
-                    <td className="py-4 text-sm font-bold text-slate-700">{invoice.date}</td>
-                    <td className="py-4 text-sm font-black text-slate-900">{invoice.amount}</td>
+                  <tr key={i} className="group transition-colors hover:bg-slate-50 dark:hover:bg-white/5">
+                    <td className="py-4 text-sm font-bold text-slate-700 dark:text-slate-400">{invoice.date}</td>
+                    <td className="py-4 text-sm font-black text-slate-900 dark:text-slate-200 tracking-tighter italic">{invoice.amount}</td>
                     <td className="py-4">
-                      <span className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase tracking-widest">
+                      <span className="px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[8px] font-black uppercase tracking-widest border border-emerald-100 dark:border-emerald-500/20">
                         {invoice.status}
                       </span>
                     </td>

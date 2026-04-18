@@ -63,10 +63,10 @@ export default function ChatInterface({ isSidebarOpen, setIsSidebarOpen }: ChatI
 
   const checkUsage = (type: 'messages' | 'images' | 'files') => {
     if (user?.isPro) return true;
-    const limits = { messages: 10, images: 3, files: 2 };
+    const limits = { messages: 15, images: 4, files: 4 };
     if (usage[type] >= limits[type]) {
       setShowPremiumModal(true);
-      toast.error(`Free limit reached: ${limits[type]} ${type} per day. Upgrade to Pro for unlimited access!`);
+      toast.error(`Neural capacity reached: ${limits[type]} ${type}. Priority upgrade required for additional synthesis.`);
       return false;
     }
     return true;
@@ -552,20 +552,20 @@ export default function ChatInterface({ isSidebarOpen, setIsSidebarOpen }: ChatI
                 {isCompareMode && (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm" className="h-6 rounded-md text-[9px] font-black uppercase tracking-widest px-2 bg-white text-brand shadow-sm flex items-center gap-1">
+                      <Button variant="ghost" size="sm" className="h-6 rounded-md text-[9px] font-black uppercase tracking-widest px-2 bg-white dark:bg-slate-800 text-brand shadow-sm flex items-center gap-1">
                         {modelOptions.find(m => m.id === comparisonModel)?.name}
                         <ChevronDown size={8} />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent className="w-48 rounded-xl p-1 shadow-2xl border-slate-200">
-                      <div className="px-2 py-1 text-[8px] font-black text-slate-400 uppercase tracking-widest">Compare with:</div>
+                    <DropdownMenuContent className="w-48 rounded-xl p-1 shadow-2xl border-slate-200 dark:border-white/5 dark:bg-slate-900">
+                      <div className="px-2 py-1 text-[8px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-widest">Compare with:</div>
                       {modelOptions.map((opt) => (
                         <DropdownMenuItem 
                           key={opt.id} 
                           onClick={() => setComparisonModel(opt.id)}
                           className={cn(
                             "rounded-lg py-2 px-3 transition-all cursor-pointer font-bold text-xs",
-                            comparisonModel === opt.id ? "bg-brand/5 text-brand" : "hover:bg-slate-50"
+                            comparisonModel === opt.id ? "bg-brand/5 text-brand" : "hover:bg-slate-50 dark:hover:bg-white/5"
                           )}
                         >
                           {opt.name}
@@ -574,7 +574,7 @@ export default function ChatInterface({ isSidebarOpen, setIsSidebarOpen }: ChatI
                     </DropdownMenuContent>
                   </DropdownMenu>
                 )}
-                <Button variant="ghost" size="sm" className={cn("h-6 rounded-md text-[9px] font-black uppercase tracking-widest px-2", showContextManager && "bg-white text-indigo-600 shadow-sm")} onClick={() => setShowContextManager(!showContextManager)}>Context</Button>
+                <Button variant="ghost" size="sm" className={cn("h-6 rounded-md text-[9px] font-black uppercase tracking-widest px-2", showContextManager && "bg-white dark:bg-slate-800 text-indigo-600 shadow-sm")} onClick={() => setShowContextManager(!showContextManager)}>Context</Button>
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -625,7 +625,7 @@ export default function ChatInterface({ isSidebarOpen, setIsSidebarOpen }: ChatI
             <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto rounded-[2rem] p-0 border-none shadow-2xl">
               <div className="p-8">
                 <DialogHeader className="mb-8">
-                  <DialogTitle className="text-3xl font-black text-slate-900 flex items-center gap-4 tracking-tighter">
+                  <DialogTitle className="text-3xl font-black text-slate-900 dark:text-white flex items-center gap-4 tracking-tighter italic uppercase">
                     <div className="w-12 h-12 bg-brand rounded-2xl flex items-center justify-center text-white shadow-lg shadow-brand/20">
                       <Settings size={24} />
                     </div>
@@ -639,19 +639,19 @@ export default function ChatInterface({ isSidebarOpen, setIsSidebarOpen }: ChatI
                       Neural Preferences
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="p-5 rounded-3xl bg-slate-50 border border-slate-100 hover:border-brand/20 transition-all group">
+                      <div className="p-5 rounded-3xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 hover:border-brand/20 transition-all group">
                         <div className="flex items-center justify-between mb-3">
-                          <span className="text-sm font-black text-slate-700 tracking-tight">Aura Streaming</span>
+                          <span className="text-sm font-black text-slate-700 dark:text-slate-300 tracking-tight">Aura Streaming</span>
                           <div className="w-10 h-5 bg-brand rounded-full relative shadow-inner"><div className="absolute right-1 top-1 w-3 h-3 bg-white rounded-full shadow-sm" /></div>
                         </div>
-                        <p className="text-[10px] text-slate-500 font-bold leading-relaxed opacity-70">Enable real-time response generation for near-instant feedback.</p>
+                        <p className="text-[10px] text-slate-500 dark:text-slate-500 font-bold leading-relaxed opacity-70">Enable real-time response generation for near-instant feedback.</p>
                       </div>
-                      <div className="p-5 rounded-3xl bg-slate-50 border border-slate-100 hover:border-brand/20 transition-all opacity-60">
+                      <div className="p-5 rounded-3xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 hover:border-brand/20 transition-all opacity-60">
                         <div className="flex items-center justify-between mb-3">
-                          <span className="text-sm font-black text-slate-700 tracking-tight">Deep Inquiry</span>
-                          <div className="w-10 h-5 bg-slate-300 rounded-full relative shadow-inner" />
+                          <span className="text-sm font-black text-slate-700 dark:text-slate-500 tracking-tight">Deep Inquiry</span>
+                          <div className="w-10 h-5 bg-slate-300 dark:bg-white/10 rounded-full relative shadow-inner" />
                         </div>
-                        <p className="text-[10px] text-amber-600 font-black uppercase tracking-widest mt-1">Pro Feature</p>
+                        <p className="text-[10px] text-amber-600 dark:text-amber-500 font-black uppercase tracking-widest mt-1">Pro Feature</p>
                       </div>
                     </div>
                   </section>
@@ -749,10 +749,10 @@ export default function ChatInterface({ isSidebarOpen, setIsSidebarOpen }: ChatI
               </motion.div>
               
               <div className="space-y-4">
-                <h1 className="text-4xl md:text-6xl font-black text-slate-900 tracking-tighter uppercase italic pr-4">
+                <h1 className="text-4xl md:text-6xl font-black text-slate-900 dark:text-white tracking-tighter uppercase italic pr-4">
                   Neural <span className="brand-text-gradient">Genesis</span>
                 </h1>
-                <p className="text-lg md:text-xl text-slate-400 font-medium leading-relaxed">
+                <p className="text-lg md:text-xl text-slate-400 dark:text-slate-500 font-medium leading-relaxed">
                   Your advanced neural partner for research, <br className="hidden sm:inline" /> creation, and complex problem solving.
                 </p>
               </div>
@@ -764,14 +764,14 @@ export default function ChatInterface({ isSidebarOpen, setIsSidebarOpen }: ChatI
                     initial={{ y: 20, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ delay: i * 0.1 + 0.3 }}
-                    className="p-6 rounded-[2rem] bg-white border border-slate-100 hover:border-brand/40 hover:shadow-2xl hover:shadow-brand/5 transition-all text-left cursor-pointer group flex flex-col items-start"
+                    className="p-6 rounded-[2rem] bg-white dark:bg-slate-900/50 border border-slate-100 dark:border-white/5 hover:border-brand/40 dark:hover:border-brand/40 hover:shadow-2xl hover:shadow-brand/5 transition-all text-left cursor-pointer group flex flex-col items-start"
                     onClick={() => setInput(s.desc)}
                   >
-                    <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-brand/10 group-hover:text-brand transition-colors mb-4">
+                    <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-white/5 flex items-center justify-center text-slate-400 dark:text-slate-600 group-hover:bg-brand/10 group-hover:text-brand transition-colors mb-4">
                       <s.icon size={20} />
                     </div>
-                    <h3 className="font-black text-slate-800 text-sm mb-1 group-hover:text-brand transition-colors uppercase italic tracking-tighter">{s.title}</h3>
-                    <p className="text-xs text-slate-500 font-medium leading-relaxed line-clamp-2">{s.desc}</p>
+                    <h3 className="font-black text-slate-800 dark:text-slate-200 text-sm mb-1 group-hover:text-brand transition-colors uppercase italic tracking-tighter">{s.title}</h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-500 font-medium leading-relaxed line-clamp-2">{s.desc}</p>
                   </motion.div>
                 ))}
               </div>

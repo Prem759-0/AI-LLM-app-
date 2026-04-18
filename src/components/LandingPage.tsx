@@ -439,9 +439,9 @@ export default function LandingPage() {
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
             {[
-              { name: "Node", price: "0", features: ["1K Standard Tokens", "Gemini 1.5 Flash", "Basic Search", "Web Link Access"], active: false },
-              { name: "Synapse", price: "24", features: ["Unlimited Flow", "Gemini 1.5 Pro", "Priority Latency", "Advanced Reasoning"], active: true },
-              { name: "Nexus", price: "99", features: ["Custom Models", "SSO & Security Hub", "Vip Support", "Team Workspaces"], active: false },
+              { name: "Node", price: "0", features: ["15 Message Synthesis", "4 Image Generations", "4 File Contexts", "Standard Latency"], active: false },
+              { name: "Synapse", price: "24", features: ["Unlimited Flow", "Advanced Reasoning", "Priority Latency", "Neural Web Search"], active: true },
+              { name: "Nexus", price: "99", features: ["Custom Models", "SSO & Security Hub", "VIP Support", "Team Workspaces"], active: false },
             ].map((plan, i) => (
               <motion.div
                 key={plan.name}

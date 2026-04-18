@@ -70,15 +70,17 @@ export default function ImageGen() {
   };
 
   return (
-    <div className="flex flex-col h-full w-full max-w-5xl mx-auto px-4 md:px-8 py-8 overflow-y-auto transition-colors">
+    <div className="flex flex-col h-full w-full max-w-5xl mx-auto px-4 md:px-8 py-8 overflow-y-auto transition-colors bg-[#fcfcff] dark:bg-[#0b0c14]">
       <PremiumModal isOpen={showPremiumModal} onOpenChange={setShowPremiumModal} />
       <div className="mb-8 flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-black text-slate-900 dark:text-white flex items-center gap-3 italic tracking-tighter uppercase">
-            <ImageIcon className="text-brand" size={32} />
+            <div className="w-12 h-12 bg-brand rounded-2xl flex items-center justify-center text-white shadow-lg shadow-brand/20">
+              <ImageIcon size={24} />
+            </div>
             Creative Studio
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-2 italic pr-4">Create stunning visuals with Cortex AI neural engine</p>
+          <p className="text-slate-500 dark:text-slate-500 mt-2 italic pr-4 font-bold uppercase tracking-widest text-[10px]">Neural visual synthesis engine</p>
         </div>
         <Button 
           variant="ghost" 
