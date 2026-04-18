@@ -6,12 +6,31 @@ import {
   Dialog, DialogContent 
 } from "./ui/dialog.tsx";
 
+import api from "../lib/api.ts";
+import { toast } from "sonner";
+
 interface PremiumModalProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
 export default function PremiumModal({ isOpen, onOpenChange }: PremiumModalProps) {
+  const [loading, setLoading] = React.useState(false);
+
+  const handleUpgrade = async () => {
+    try {
+      setLoading(true);
+      const res = await api.post("billing/create-checkout-session", { plan: "pro" });
+      if (res.data.url) {
+        window.location.href = res.data.url;
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to start checkout");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px] rounded-[2rem] p-0 overflow-hidden border-none shadow-2xl">
@@ -42,11 +61,15 @@ export default function PremiumModal({ isOpen, onOpenChange }: PremiumModalProps
               </div>
             ))}
           </div>
-          <Button className="w-full bg-brand hover:bg-brand-dark text-white rounded-2xl py-7 font-black text-lg shadow-xl shadow-brand/20 transition-all hover:scale-[1.02] active:scale-[0.98]">
-            Start 7-Day Free Trial
+          <Button 
+            disabled={loading}
+            onClick={handleUpgrade}
+            className="w-full bg-brand hover:bg-brand-dark text-white rounded-2xl py-7 font-black text-lg shadow-xl shadow-brand/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
+          >
+            {loading ? "Preparing..." : "Start 7-Day Free Trial"}
           </Button>
           <p className="text-center text-[10px] text-slate-400 mt-4 font-bold uppercase tracking-widest">
-            Then $19.99/month. Cancel anytime.
+            Then $24.00/month. Cancel anytime.
           </p>
         </div>
       </DialogContent>

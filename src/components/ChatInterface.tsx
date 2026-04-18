@@ -10,7 +10,7 @@ import {
   ChevronDown, Paperclip, Wand2, Brain, History, Copy,
   Menu, FileJson, FileText, MicOff, Volume2, XCircle,
   Square, PlusCircle, Bold, Italic, List, Code2, Link as LinkIcon,
-  Quote, Eye, Info, Crown, Pencil
+  Quote, Eye, Info, Crown, Pencil, Layers
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "./ui/button.tsx";
@@ -27,7 +27,14 @@ import { useAuth } from "../App.tsx";
 import api from "../lib/api.ts";
 import { cn } from "../lib/utils.ts";
 import { streamChat } from "../lib/gemini.ts";
+import { 
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "./ui/tooltip.tsx";
 import PremiumModal from "./PremiumModal.tsx";
+import ContextManager from "./ContextManager.tsx";
 
 interface Message {
   id?: string;
@@ -45,21 +52,17 @@ export default function ChatInterface({ setIsSidebarOpen }: ChatInterfaceProps) 
   const navigate = useNavigate();
   
   // Usage Tracking
-  const [usage, setUsage] = useState(() => {
-    const saved = localStorage.getItem('cortex_usage');
-    try {
-      return saved ? JSON.parse(saved) : { messages: 0, images: 0, files: 0 };
-    } catch {
-      return { messages: 0, images: 0, files: 0 };
-    }
-  });
+  const [usage, setUsage] = useState({ messages: 0, images: 0, files: 0 });
 
   useEffect(() => {
-    localStorage.setItem('cortex_usage', JSON.stringify(usage));
-  }, [usage]);
+    if (user?.usage) {
+      setUsage(user.usage);
+    }
+  }, [user]);
 
   const checkUsage = (type: 'messages' | 'images' | 'files') => {
-    const limits = { messages: 20, images: 5, files: 3 };
+    if (user?.isPro) return true;
+    const limits = { messages: 10, images: 3, files: 2 };
     if (usage[type] >= limits[type]) {
       setShowPremiumModal(true);
       toast.error(`Free limit reached: ${limits[type]} ${type} per day. Upgrade to Pro for unlimited access!`);
@@ -73,7 +76,8 @@ export default function ChatInterface({ setIsSidebarOpen }: ChatInterfaceProps) 
   const [selectedModel, setSelectedModel] = useState("text");
   const [isTyping, setIsTyping] = useState(false);
   const [streamingContent, setStreamingContent] = useState("");
-  const [attachedFile, setAttachedFile] = useState<{ name: string; content: string } | null>(null);
+  const [secondaryStreamingContent, setSecondaryStreamingContent] = useState("");
+  const [attachedFile, setAttachedFile] = useState<{ name: string; content: string; type?: string; preview?: string } | null>(null);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [chatTitle, setChatTitle] = useState("New Chat");
   const [showPreview, setShowPreview] = useState(false);
@@ -86,6 +90,9 @@ export default function ChatInterface({ setIsSidebarOpen }: ChatInterfaceProps) 
   const [isResearchMode, setIsResearchMode] = useState(false);
   const [isCreativeMode, setIsCreativeMode] = useState(false);
   const [showScrollButton, setShowScrollButton] = useState(false);
+  const [showContextManager, setShowContextManager] = useState(false);
+  const [isCompareMode, setIsCompareMode] = useState(false);
+  const [comparisonModel, setComparisonModel] = useState("thinking");
   const MAX_CHARS = 4000;
   
   const recognitionRef = useRef<any>(null);
@@ -173,11 +180,27 @@ export default function ChatInterface({ setIsSidebarOpen }: ChatInterfaceProps) 
     const reader = new FileReader();
     reader.onload = (event) => {
       const content = event.target?.result as string;
-      setAttachedFile({ name: file.name, content });
+      
+      let preview: string | undefined = undefined;
+      if (file.type.startsWith('image/')) {
+        preview = content;
+      }
+
+      setAttachedFile({ 
+        name: file.name, 
+        content: file.type.startsWith('image/') ? '[Image Data]' : content.slice(0, 10000), 
+        type: file.type,
+        preview
+      });
       setUsage(prev => ({ ...prev, files: prev.files + 1 }));
       toast.success(`File "${file.name}" attached`);
     };
-    reader.readAsText(file);
+
+    if (file.type.startsWith('image/')) {
+      reader.readAsDataURL(file);
+    } else {
+      reader.readAsText(file);
+    }
     e.target.value = "";
   };
 
@@ -212,6 +235,25 @@ export default function ChatInterface({ setIsSidebarOpen }: ChatInterfaceProps) 
     }
   };
 
+  const summarizeChat = async () => {
+    if (messages.length < 2) {
+      toast.info("Start a conversation first to summarize!");
+      return;
+    }
+    const toastId = toast.loading("Synthesizing chat summary...");
+    try {
+      const res = await api.post("ai/summarize", { messages });
+      setChatTitle(res.data.summary);
+      if (id) {
+        await api.patch(`chat/${id}`, { title: res.data.summary });
+      }
+      toast.success("Chat summarized and titled!", { id: toastId, icon: <Sparkles size={16} className="text-brand" /> });
+    } catch (err) {
+      console.error(err);
+      toast.error("Summarization failed", { id: toastId });
+    }
+  };
+
   const handleRename = async () => {
     if (!id || !chatTitle.trim()) return;
     setIsSaved(false);
@@ -228,7 +270,15 @@ export default function ChatInterface({ setIsSidebarOpen }: ChatInterfaceProps) 
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const target = e.currentTarget;
-    const isAtBottom = target.scrollHeight - target.scrollTop <= target.clientHeight + 100;
+    // Only show scroll button if we are more than 200px from the bottom
+    const isAtBottom = target.scrollHeight - target.scrollTop <= target.clientHeight + 200;
+    
+    // Also, if total content is less than viewport, we are at bottom
+    if (target.scrollHeight <= target.clientHeight) {
+      setShowScrollButton(false);
+      return;
+    }
+    
     setShowScrollButton(!isAtBottom);
   };
 
@@ -322,24 +372,47 @@ export default function ChatInterface({ setIsSidebarOpen }: ChatInterfaceProps) 
     setAttachedFile(null);
     setIsTyping(true);
     setStreamingContent("");
+    setSecondaryStreamingContent("");
     setIsResearchMode(false);
     setIsCreativeMode(false);
+    
+    // Auto-scroll on new message
+    setTimeout(scrollToBottom, 100);
 
     try {
       let chatId = id;
       if (!chatId) {
-        const res = await api.post("chat");
+        const res = await api.post("chat", { 
+          title: finalInput.slice(0, 40) + (finalInput.length > 40 ? "..." : ""),
+          messages: [{ role: "user", content: finalInput }]
+        });
         chatId = res.data._id;
         navigate(`/chat/${chatId}`, { replace: true });
+        // After creating, we don't need to patch immediately if we already sent messages in creation
+        // But for consistency with streaming, we'll let the logic below handle it
       }
 
       setIsSaving(true);
       setIsSaved(false);
       let fullContent = "";
+      let secondaryFullContent = "";
       abortControllerRef.current = new AbortController();
       
-      // Pass the full history with processed input to the AI
+      // Primary Stream
       const stream = streamChat(newMessages, selectedModel);
+      
+      // Secondary Stream (if compare mode)
+      const secondaryPromise = isCompareMode 
+        ? (async () => {
+            const secondaryStream = streamChat(newMessages, comparisonModel);
+            for await (const chunk of secondaryStream) {
+              if (abortControllerRef.current?.signal.aborted) break;
+              secondaryFullContent += chunk;
+              setSecondaryStreamingContent(secondaryFullContent);
+            }
+            return secondaryFullContent;
+          })()
+        : Promise.resolve("");
 
       for await (const chunk of stream) {
         if (abortControllerRef.current?.signal.aborted) break;
@@ -347,10 +420,22 @@ export default function ChatInterface({ setIsSidebarOpen }: ChatInterfaceProps) 
         setStreamingContent(fullContent);
       }
 
-      const assistantMessage: Message = { role: "assistant", content: fullContent };
+      const [assistantContent, secondContent] = await Promise.all([
+        Promise.resolve(fullContent),
+        secondaryPromise
+      ]);
+
+      const assistantMessage: Message = { 
+        role: "assistant", 
+        content: isCompareMode 
+          ? `### ${modelOptions.find(m => m.id === selectedModel)?.name} (Primary)\n${assistantContent}\n\n---\n\n### ${modelOptions.find(m => m.id === comparisonModel)?.name} (Secondary)\n${secondContent}`
+          : assistantContent 
+      };
+      
       const finalMessages = [...displayMessages, assistantMessage];
       setMessages(finalMessages);
       setStreamingContent("");
+      setSecondaryStreamingContent("");
       setIsTyping(false);
 
       // Update chat in DB
@@ -458,6 +543,48 @@ export default function ChatInterface({ setIsSidebarOpen }: ChatInterfaceProps) 
                 <div className="hidden sm:block w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 <span className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Aura v3.0 Core</span>
               </div>
+              <div className="hidden lg:flex items-center gap-1 bg-slate-100/80 p-0.5 rounded-lg border border-slate-200/50 ml-4">
+                <Button variant="ghost" size="sm" className={cn("h-6 rounded-md text-[9px] font-black uppercase tracking-widest px-2", isCompareMode && "bg-white text-brand shadow-sm")} onClick={() => setIsCompareMode(!isCompareMode)}>Compare</Button>
+                {isCompareMode && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-6 rounded-md text-[9px] font-black uppercase tracking-widest px-2 bg-white text-brand shadow-sm flex items-center gap-1">
+                        {modelOptions.find(m => m.id === comparisonModel)?.name}
+                        <ChevronDown size={8} />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="w-48 rounded-xl p-1 shadow-2xl border-slate-200">
+                      <div className="px-2 py-1 text-[8px] font-black text-slate-400 uppercase tracking-widest">Compare with:</div>
+                      {modelOptions.map((opt) => (
+                        <DropdownMenuItem 
+                          key={opt.id} 
+                          onClick={() => setComparisonModel(opt.id)}
+                          className={cn(
+                            "rounded-lg py-2 px-3 transition-all cursor-pointer font-bold text-xs",
+                            comparisonModel === opt.id ? "bg-brand/5 text-brand" : "hover:bg-slate-50"
+                          )}
+                        >
+                          {opt.name}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+                <Button variant="ghost" size="sm" className={cn("h-6 rounded-md text-[9px] font-black uppercase tracking-widest px-2", showContextManager && "bg-white text-indigo-600 shadow-sm")} onClick={() => setShowContextManager(!showContextManager)}>Context</Button>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-6 rounded-md text-slate-500 hover:text-brand px-2" onClick={summarizeChat}>
+                        <Sparkles size={10} />
+                        <span className="ml-1 text-[8px] font-black">Summarize</span>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent className="rounded-xl p-2 bg-slate-900 text-white text-[10px] font-bold border-none">
+                      Generate AI Title
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
               <AnimatePresence>
                 {isSaving && (
                   <motion.div 
@@ -475,8 +602,17 @@ export default function ChatInterface({ setIsSidebarOpen }: ChatInterfaceProps) 
           </div>
         </div>
 
-        <div className="flex items-center gap-2 ml-4 shrink-0">
-          <Dialog>
+          <div className="flex items-center gap-2 ml-4 shrink-0">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => navigate("/chat")}
+              className="h-10 w-10 text-slate-500 hover:text-brand rounded-xl border-2 border-slate-100 hidden sm:flex"
+              title="New Chat"
+            >
+              <PlusCircle size={20} />
+            </Button>
+            <Dialog>
             <DialogTrigger render={
               <Button variant="ghost" size="icon" className="h-10 w-10 text-slate-500 hover:text-brand rounded-xl border-2 border-slate-100 sm:flex hidden">
                 <Settings size={20} />
@@ -537,39 +673,49 @@ export default function ChatInterface({ setIsSidebarOpen }: ChatInterfaceProps) 
               </div>
             </DialogContent>
           </Dialog>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="hidden sm:flex rounded-xl gap-2 font-black text-[10px] uppercase tracking-widest text-slate-500 hover:bg-slate-100 px-4 border-2 border-slate-100 h-10">
-                {React.createElement(modelOptions.find(m => m.id === selectedModel)?.icon || Sparkles, { size: 14 })}
-                {modelOptions.find(m => m.id === selectedModel)?.name}
-                <ChevronDown size={14} className="text-slate-400" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-72 rounded-2xl p-2 shadow-2xl border-slate-200">
-              <div className="px-3 py-2 mb-1 text-[10px] font-black text-slate-400 uppercase tracking-widest">Select Model</div>
-              {modelOptions.map((opt) => (
-                <DropdownMenuItem 
-                  key={opt.id} 
-                  onClick={() => setSelectedModel(opt.id)}
-                  className={cn(
-                    "flex flex-col items-start gap-1 rounded-xl py-3 px-4 transition-all cursor-pointer mb-1",
-                    selectedModel === opt.id ? "bg-brand/5 border border-brand/10" : "hover:bg-slate-50"
-                  )}
-                >
-                  <div className="flex items-center gap-3 w-full">
-                    <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", selectedModel === opt.id ? "bg-brand text-white" : "bg-slate-100 text-slate-500")}>
-                      <opt.icon size={16} />
+          <TooltipProvider>
+            <DropdownMenu>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="hidden sm:flex rounded-xl gap-2 font-black text-[10px] uppercase tracking-widest text-slate-500 hover:bg-slate-100 px-4 border-2 border-slate-100 h-10">
+                      {React.createElement(modelOptions.find(m => m.id === selectedModel)?.icon || Sparkles, { size: 14 })}
+                      {modelOptions.find(m => m.id === selectedModel)?.name}
+                      <ChevronDown size={14} className="text-slate-400" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                </TooltipTrigger>
+                <TooltipContent className="rounded-xl p-3 bg-slate-900 text-white border-none shadow-xl">
+                  <p className="text-xs font-bold">Switch Neural Model</p>
+                  <p className="text-[10px] opacity-70">Current: {modelOptions.find(m => m.id === selectedModel)?.name}</p>
+                </TooltipContent>
+              </Tooltip>
+              <DropdownMenuContent align="end" className="w-72 rounded-2xl p-2 shadow-2xl border-slate-200">
+                <div className="px-3 py-2 mb-1 text-[10px] font-black text-slate-400 uppercase tracking-widest">Select Model</div>
+                {modelOptions.map((opt) => (
+                  <DropdownMenuItem 
+                    key={opt.id} 
+                    onClick={() => setSelectedModel(opt.id)}
+                    className={cn(
+                      "flex flex-col items-start gap-1 rounded-xl py-3 px-4 transition-all cursor-pointer mb-1",
+                      selectedModel === opt.id ? "bg-brand/5 border border-brand/10" : "hover:bg-slate-50"
+                    )}
+                  >
+                    <div className="flex items-center gap-3 w-full">
+                      <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", selectedModel === opt.id ? "bg-brand text-white" : "bg-slate-100 text-slate-500")}>
+                        <opt.icon size={16} />
+                      </div>
+                      <div className="flex-1">
+                        <div className={cn("text-sm font-black", selectedModel === opt.id ? "text-brand" : "text-slate-900")}>{opt.name}</div>
+                        <div className="text-[10px] font-bold text-slate-400 leading-tight">{opt.desc}</div>
+                      </div>
+                      {selectedModel === opt.id && <CheckCircle2 size={14} className="text-brand" />}
                     </div>
-                    <div className="flex-1">
-                      <div className={cn("text-sm font-black", selectedModel === opt.id ? "text-brand" : "text-slate-900")}>{opt.name}</div>
-                      <div className="text-[10px] font-bold text-slate-400 leading-tight">{opt.desc}</div>
-                    </div>
-                    {selectedModel === opt.id && <CheckCircle2 size={14} className="text-brand" />}
-                  </div>
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </TooltipProvider>
 
           <Button 
             className="bg-slate-900 hover:bg-slate-800 text-white rounded-xl gap-2 font-black text-[10px] uppercase tracking-widest px-4 h-10 shadow-lg shadow-brand/20 transition-all hover:scale-105 active:scale-95"
@@ -583,8 +729,9 @@ export default function ChatInterface({ setIsSidebarOpen }: ChatInterfaceProps) 
 
       <ScrollArea className={cn("flex-1 min-h-0", messages.length === 0 && "no-scrollbar")} onScroll={handleScroll}>
         <div className={cn(
-          "max-w-4xl mx-auto px-4 md:px-8",
-          messages.length === 0 ? "h-full flex items-center justify-center p-0" : "py-4 space-y-8"
+          "mx-auto px-4 md:px-8 transition-all duration-500",
+          messages.length === 0 ? "max-w-4xl h-full flex items-center justify-center p-0" : "py-4 space-y-8 max-w-4xl",
+          isCompareMode && messages.length > 0 && "max-w-7xl grid grid-cols-1 lg:grid-cols-2 gap-8"
         )}>
           {messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center text-center space-y-12 w-full max-w-2xl">
@@ -626,143 +773,185 @@ export default function ChatInterface({ setIsSidebarOpen }: ChatInterfaceProps) 
               </div>
             </div>
           ) : (
-            <div className="space-y-8">
-              {messages.map((m, i) => (
-                <motion.div 
-                  layout
-                  initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  key={m.id || i}
-                  className={cn(
-                    "flex gap-4 group/item",
-                    m.role === "user" ? "flex-row-reverse" : "flex-row"
-                  )}
-                >
-                  <Avatar className={cn(
-                    "h-10 w-10 border-2 border-white shadow-lg shrink-0 transition-all hover:scale-110 active:scale-95 cursor-pointer",
-                    m.role === "user" ? "bg-gradient-to-tr from-brand to-indigo-600 ring-2 ring-brand/10" : "bg-slate-900 ring-2 ring-slate-100"
-                  )}>
-                    {m.role === "user" ? (
-                      <>
-                        <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name}`} />
-                        <AvatarFallback className="bg-brand text-white text-xs font-black">{user?.name?.[0]}</AvatarFallback>
-                      </>
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-brand">
-                        <Sparkles size={20} className="animate-pulse" />
-                      </div>
+            <div className={cn("space-y-8 h-full", isCompareMode ? "flex flex-col lg:flex-row gap-8" : "")}>
+              <div className={cn("space-y-8", isCompareMode ? "flex-1 min-w-0" : "")}>
+                {messages.map((m, i) => (
+                  <motion.div 
+                    layout
+                    initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    key={m.id || i}
+                    className={cn(
+                      "flex gap-4 group/item",
+                      m.role === "user" ? "flex-row-reverse" : "flex-row"
                     )}
-                  </Avatar>
-                  <div className={cn(
-                    "max-w-[85%] md:max-w-[75%] relative group/message transition-all",
-                    m.role === "user" ? "chat-bubble-user" : "chat-bubble-ai"
-                  )}>
-                    <div className={cn(
-                      "prose prose-sm md:prose-base dark:prose-invert leading-relaxed",
-                      m.role === "user" ? "text-white selection:bg-white/20" : "text-slate-700 selection:bg-brand/10"
+                  >
+                    <Avatar className={cn(
+                      "h-10 w-10 border-2 border-white shadow-lg shrink-0 transition-all hover:scale-110 active:scale-95 cursor-pointer",
+                      m.role === "user" ? "bg-gradient-to-tr from-brand to-indigo-600 ring-2 ring-brand/10" : "bg-slate-900 ring-2 ring-slate-100"
                     )}>
-                      <ReactMarkdown components={MarkdownComponents} remarkPlugins={[remarkGfm]}>{m.content}</ReactMarkdown>
-                    </div>
-                    <div className={cn(
-                      "absolute top-0 flex gap-1 opacity-0 group-hover/message:opacity-100 transition-all duration-200",
-                      m.role === "user" ? "-left-20 flex-row-reverse" : "-right-24"
-                    )}>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 rounded-xl bg-white/80 backdrop-blur-sm shadow-sm border border-slate-100 text-slate-400 hover:text-brand hover:scale-110 transition-all"
-                        onClick={() => {
-                          navigator.clipboard.writeText(m.content);
-                          toast.success("Copied to clipboard");
-                        }}
-                        title="Copy content"
-                      >
-                        <Copy size={14} />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 rounded-xl bg-white/80 backdrop-blur-sm shadow-sm border border-slate-100 text-slate-400 hover:text-red-500 hover:scale-110 transition-all"
-                        onClick={() => {
-                          setMessages(prev => prev.filter((_, idx) => idx !== i));
-                          toast.error("Message removed");
-                        }}
-                        title="Delete message"
-                      >
-                        <XCircle size={14} />
-                      </Button>
-                      {m.role === "assistant" && (
+                      {m.role === "user" ? (
                         <>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className={cn(
-                              "h-8 w-8 rounded-xl bg-white/80 backdrop-blur-sm shadow-sm border border-slate-100 text-slate-400 hover:text-brand hover:scale-110 transition-all",
-                              isSpeaking && "text-brand animate-pulse"
-                            )}
-                            onClick={() => speakText(m.content)}
-                          >
-                            <Volume2 size={14} />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 rounded-xl bg-white/80 backdrop-blur-sm shadow-sm border border-slate-100 text-slate-400 hover:text-brand hover:scale-110 transition-all"
-                            onClick={() => {
-                              const lastUserMessage = messages.filter(msg => msg.role === "user").pop();
-                              if (lastUserMessage) {
-                                setMessages(prev => prev.slice(0, -2));
-                                handleSubmit(undefined, lastUserMessage.content);
-                              }
-                            }}
-                          >
-                            <Wand2 size={14} />
-                          </Button>
+                          <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name}`} />
+                          <AvatarFallback className="bg-brand text-white text-xs font-black">{user?.name?.[0]}</AvatarFallback>
                         </>
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-brand">
+                          <Sparkles size={20} className="animate-pulse" />
+                        </div>
                       )}
-                      {m.role === "user" && (
+                    </Avatar>
+                    <div className={cn(
+                      "max-w-[85%] md:max-w-[75%] relative group/message transition-all",
+                      m.role === "user" ? "chat-bubble-user" : "chat-bubble-ai"
+                    )}>
+                      <div className={cn(
+                        "prose prose-sm md:prose-base dark:prose-invert leading-relaxed",
+                        m.role === "user" ? "text-white selection:bg-white/20" : "text-slate-700 selection:bg-brand/10"
+                      )}>
+                        <ReactMarkdown components={MarkdownComponents} remarkPlugins={[remarkGfm]}>{m.content}</ReactMarkdown>
+                      </div>
+                      <div className={cn(
+                        "absolute top-0 flex gap-1 opacity-0 group-hover/message:opacity-100 transition-all duration-200",
+                        m.role === "user" ? "-left-20 flex-row-reverse" : "-right-24"
+                      )}>
                         <Button
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 rounded-xl bg-white/80 backdrop-blur-sm shadow-sm border border-slate-100 text-slate-400 hover:text-brand hover:scale-110 transition-all"
                           onClick={() => {
-                            setInput(m.content);
-                            textareaRef.current?.focus();
-                            toast.info("Message copied to input for editing");
+                            navigator.clipboard.writeText(m.content);
+                            toast.success("Copied to clipboard");
                           }}
-                          title="Edit Message"
+                          title="Copy content"
                         >
-                          <Pencil size={14} />
+                          <Copy size={14} />
                         </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 rounded-xl bg-white/80 backdrop-blur-sm shadow-sm border border-slate-100 text-slate-400 hover:text-red-500 hover:scale-110 transition-all"
+                          onClick={() => {
+                            setMessages(prev => prev.filter((_, idx) => idx !== i));
+                            toast.error("Message removed");
+                          }}
+                          title="Delete message"
+                        >
+                          <XCircle size={14} />
+                        </Button>
+                        {m.role === "assistant" && (
+                          <div className="flex items-center gap-1">
+                            <button
+                              className={cn(
+                                "h-8 w-8 rounded-xl bg-white/80 backdrop-blur-sm shadow-sm border border-slate-100 transition-all flex items-center justify-center",
+                                isSpeaking ? "text-brand animate-pulse bg-brand/5 border-brand/20 shadow-brand/10" : "text-slate-400 hover:text-brand hover:scale-110"
+                              )}
+                              onClick={() => speakText(m.content)}
+                            >
+                              {isSpeaking ? <XCircle size={14} className="text-red-500" /> : <Volume2 size={14} />}
+                            </button>
+                            {isSpeaking && (
+                              <div className="flex gap-0.5 px-2">
+                                <div className="w-0.5 h-3 bg-brand/40 animate-music-bar-1" />
+                                <div className="w-0.5 h-4 bg-brand/60 animate-music-bar-2" />
+                                <div className="w-0.5 h-2 bg-brand/80 animate-music-bar-3" />
+                              </div>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 rounded-xl bg-white/80 backdrop-blur-sm shadow-sm border border-slate-100 text-slate-400 hover:text-brand hover:scale-110 transition-all"
+                              onClick={() => {
+                                const lastUserMessage = messages.filter(msg => msg.role === "user").pop();
+                                if (lastUserMessage) {
+                                  setMessages(prev => prev.slice(0, -2));
+                                  handleSubmit(undefined, lastUserMessage.content);
+                                }
+                              }}
+                            >
+                              <Wand2 size={14} />
+                            </Button>
+                          </div>
+                        )}
+                        {m.role === "user" && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 rounded-xl bg-white/80 backdrop-blur-sm shadow-sm border border-slate-100 text-slate-400 hover:text-brand hover:scale-110 transition-all"
+                            onClick={() => {
+                              setInput(m.content);
+                              textareaRef.current?.focus();
+                              toast.info("Message copied to input for editing");
+                            }}
+                            title="Edit Message"
+                          >
+                            <Pencil size={14} />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+
+                {isTyping && (
+                  <div className="flex gap-4">
+                    <Avatar className="h-10 w-10 border-2 border-white shadow-md bg-slate-900 shrink-0 flex items-center justify-center text-brand">
+                      <Sparkles size={20} />
+                    </Avatar>
+                    <div className="chat-bubble-ai min-w-[120px]">
+                      {(selectedModel === "thinking" || isResearchMode) && !streamingContent && (
+                        <div className="flex items-center gap-2 text-brand mb-2 pb-2 border-b border-slate-50">
+                          <Brain size={14} className="animate-thinking" />
+                          <span className="text-[10px] font-bold uppercase tracking-wider">
+                            {isResearchMode ? "Synthesizing Knowledge..." : "Deep Reasoning..."}
+                          </span>
+                        </div>
+                      )}
+                      {streamingContent ? (
+                        <div className="prose prose-sm md:prose-base dark:prose-invert">
+                          <ReactMarkdown components={MarkdownComponents} remarkPlugins={[remarkGfm]}>{streamingContent}</ReactMarkdown>
+                        </div>
+                      ) : (
+                        <div className="flex gap-1.5 py-2">
+                          <div className="w-2 h-2 bg-brand/40 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                          <div className="w-2 h-2 bg-brand/60 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+                          <div className="w-2 h-2 bg-brand/80 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                        </div>
                       )}
                     </div>
                   </div>
-                </motion.div>
-              ))}
-              
-              {isTyping && (
-                <div className="flex gap-4">
-                  <Avatar className="h-10 w-10 border-2 border-white shadow-md bg-slate-900 shrink-0 flex items-center justify-center text-brand">
-                    <Sparkles size={20} />
-                  </Avatar>
-                  <div className="chat-bubble-ai min-w-[120px]">
-                    {(selectedModel === "thinking" || isResearchMode) && !streamingContent && (
-                      <div className="flex items-center gap-2 text-brand mb-2 pb-2 border-b border-slate-50">
-                        <Brain size={14} className="animate-thinking" />
-                        <span className="text-[10px] font-bold uppercase tracking-wider">
-                          {isResearchMode ? "Synthesizing Knowledge..." : "Deep Reasoning..."}
-                        </span>
-                      </div>
-                    )}
-                    {streamingContent ? (
-                      <div className="prose prose-sm md:prose-base dark:prose-invert">
-                        <ReactMarkdown components={MarkdownComponents} remarkPlugins={[remarkGfm]}>{streamingContent}</ReactMarkdown>
-                      </div>
+                )}
+              </div>
+
+              {isCompareMode && (
+                <div className="flex-1 min-w-0 border-l border-slate-200 pl-8 bg-slate-50/30 rounded-3xl p-6 h-fit sticky top-20">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-2">
+                      <Layers className="w-4 h-4 text-brand" />
+                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic font-serif">Secondary Insight</span>
+                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm" className="h-7 text-[9px] font-black gap-2 bg-white shadow-sm border border-slate-200 uppercase tracking-widest px-3 rounded-lg">
+                          {comparisonModel} <ChevronDown size={12} />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent className="rounded-xl p-1 shadow-2xl">
+                        {modelOptions.map(opt => (
+                          <DropdownMenuItem key={opt.id} onClick={() => setComparisonModel(opt.id)} className="text-[10px] font-bold uppercase tracking-widest rounded-lg">
+                            {opt.name}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                  <div className="prose prose-sm text-slate-700 leading-relaxed font-sans">
+                    {secondaryStreamingContent ? (
+                      <ReactMarkdown components={MarkdownComponents} remarkPlugins={[remarkGfm]}>{secondaryStreamingContent}</ReactMarkdown>
                     ) : (
-                      <div className="flex gap-1.5 py-2">
-                        <div className="w-2 h-2 bg-brand/40 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-                        <div className="w-2 h-2 bg-brand/60 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-                        <div className="w-2 h-2 bg-brand/80 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                      <div className="opacity-60 italic font-serif flex flex-col items-center justify-center py-20 text-center">
+                        <History size={32} className="mb-4 opacity-20" />
+                        <p>Secondary model feedback will manifest here during active synthesis.</p>
                       </div>
                     )}
                   </div>
@@ -795,20 +984,28 @@ export default function ChatInterface({ setIsSidebarOpen }: ChatInterfaceProps) 
 
       <div className="pb-4 pt-2 shrink-0">
         <div className="max-w-3xl mx-auto relative px-2">
-          {/* Quick Suggestions Chips */}
-          {messages.length > 0 && messages.length < 6 && (
-            <div className="flex items-center gap-2 mb-3 overflow-x-auto pb-2 no-scrollbar px-1">
-              {suggestions.map((s) => (
-                <button
-                  key={s.title}
-                  onClick={() => handleSubmit(undefined, s.desc)}
-                  className="whitespace-nowrap px-3 py-1 rounded-full bg-white border border-slate-200 text-[10px] font-black uppercase tracking-wider text-slate-500 hover:border-brand hover:text-brand transition-all shadow-sm shrink-0"
-                >
-                  {s.title}
-                </button>
-              ))}
-            </div>
-          )}
+          {/* Quick Actions Bar */}
+          <div className="flex items-center gap-2 mb-3 overflow-x-auto pb-2 no-scrollbar px-1">
+            {[
+              { label: "Brainstorm", icon: Lightbulb, color: "text-amber-600 bg-amber-50 border-amber-100" },
+              { label: "Summarize", icon: Sparkles, color: "text-brand bg-brand/5 border-brand/10" },
+              { label: "Fix Code", icon: Code2, color: "text-emerald-600 bg-emerald-50 border-emerald-100" },
+              { label: "Optimize", icon: Zap, color: "text-indigo-600 bg-indigo-50 border-indigo-100" },
+              { label: "Explain", icon: Info, color: "text-slate-600 bg-slate-100 border-slate-200" },
+            ].map((action) => (
+              <button
+                key={action.label}
+                onClick={() => action.label === "Summarize" ? summarizeChat() : setInput(prev => `${action.label}: ${prev}`)}
+                className={cn(
+                  "whitespace-nowrap px-3 py-1.5 rounded-xl border text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all hover:scale-105 active:scale-95 shadow-sm shrink-0",
+                  action.color
+                )}
+              >
+                <action.icon size={12} />
+                {action.label}
+              </button>
+            ))}
+          </div>
           <div className={cn(
             "glass rounded-2xl sm:rounded-[2rem] p-1.5 md:p-2 shadow-2xl border-white/50 relative overflow-hidden transition-all duration-500 group/input",
             isResearchMode && "ring-2 ring-brand/30 shadow-brand/10 bg-brand/[0.02]",
@@ -921,62 +1118,100 @@ export default function ChatInterface({ setIsSidebarOpen }: ChatInterfaceProps) 
                 inputError && "placeholder-red-400"
               )}
             />
-            <div className="flex items-center justify-between px-4 pb-2">
-              <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between px-4 py-1.5 border-t border-slate-50 bg-slate-50/30">
+              <div className="flex items-center gap-3">
                 <div className={cn(
-                  "text-[10px] font-black px-2 py-0.5 rounded-md transition-all flex items-center gap-1.5",
-                  input.length > MAX_CHARS ? "bg-red-100 text-red-600 animate-bounce" : 
-                  input.length > MAX_CHARS - 500 ? "bg-amber-100 text-amber-600" :
-                  "bg-slate-100 text-slate-400"
+                  "text-[10px] font-black px-2 py-0.5 rounded-md transition-all flex items-center gap-1.5 shadow-sm",
+                  input.length > MAX_CHARS ? "bg-red-50 text-red-600 ring-1 ring-red-200" : 
+                  input.length > MAX_CHARS - 500 ? "bg-amber-50 text-amber-600 ring-1 ring-amber-200" :
+                  "bg-white text-slate-400 ring-1 ring-slate-100"
                 )}>
-                  {input.length > MAX_CHARS - 500 && <Info size={10} />}
-                  {input.length} / {MAX_CHARS}
+                  <span className="opacity-50 tracking-tighter">CHARS:</span>
+                  {input.length.toLocaleString()} / {MAX_CHARS.toLocaleString()}
                 </div>
                 {input.length > 0 && (
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="h-6 w-6 text-slate-300 hover:text-red-500" 
-                    onClick={() => setInput("")}
-                  >
-                    <XCircle size={12} />
-                  </Button>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-6 w-6 text-slate-300 hover:text-red-500 rounded-lg hover:bg-red-50" 
+                          onClick={() => setInput("")}
+                        >
+                          <XCircle size={12} />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent className="bg-slate-900 text-white rounded-lg">
+                        <p className="text-[10px] font-bold">Clear Input</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 )}
               </div>
-              {inputError && (
-                <div className="text-[10px] font-bold text-red-500 animate-pulse">
+              {inputError ? (
+                <div className="text-[10px] font-bold text-red-500 animate-pulse bg-red-50 px-2 rounded-md">
                   {inputError}
+                </div>
+              ) : (
+                <div className="text-[9px] font-black text-slate-300 uppercase tracking-widest hidden sm:block">
+                  Press Enter to send, Shift + Enter for new line
                 </div>
               )}
             </div>
             <div className="flex flex-col sm:flex-row items-center justify-between px-2 pb-2 gap-2">
               <div className="flex items-center gap-1 w-full sm:w-auto overflow-x-auto no-scrollbar pb-1 sm:pb-0">
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => {
-                    setIsResearchMode(!isResearchMode);
-                    setIsCreativeMode(false);
-                  }}
-                  className={cn(
-                    "rounded-xl gap-2 px-3 transition-all shrink-0",
-                    isResearchMode ? "bg-brand text-white hover:bg-brand-dark" : "text-brand bg-brand/10 hover:bg-brand/20"
-                  )}
-                >
-                  <BrainCircuit size={16} />
-                  <span className="text-xs font-semibold">Research</span>
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  onClick={startListening}
-                  className={cn(
-                    "transition-all shrink-0",
-                    isListening ? "text-red-500 bg-red-50 animate-pulse" : "text-slate-400 hover:text-brand"
-                  )}
-                >
-                  {isListening ? <MicOff size={18} /> : <Mic size={18} />}
-                </Button>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => {
+                          setIsResearchMode(!isResearchMode);
+                          setIsCreativeMode(false);
+                        }}
+                        className={cn(
+                          "rounded-xl gap-2 px-3 transition-all shrink-0",
+                          isResearchMode ? "bg-brand text-white hover:bg-brand-dark" : "text-brand bg-brand/10 hover:bg-brand/20"
+                        )}
+                      >
+                        <BrainCircuit size={16} />
+                        <span className="text-xs font-semibold">Research</span>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent className="rounded-xl p-3 bg-slate-900">
+                      <p className="text-xs font-bold text-white uppercase tracking-widest">Deep Synthesis Mode</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                <div className="relative group">
+                  <AnimatePresence>
+                    {isListening && (
+                      <motion.div 
+                        initial={{ opacity: 0, x: 10, scale: 0.8 }}
+                        animate={{ opacity: 1, x: 0, scale: 1 }}
+                        exit={{ opacity: 0, x: 10, scale: 0.8 }}
+                        className="absolute -top-12 right-0 flex items-center gap-2 bg-red-500 text-white px-3 py-1.5 rounded-2xl shadow-lg border border-red-400 z-50 whitespace-nowrap"
+                      >
+                        <div className="w-2 h-2 bg-white rounded-full animate-ping" />
+                        <span className="text-[10px] font-black uppercase tracking-widest leading-none">Aura Listening...</span>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={startListening}
+                    className={cn(
+                      "transition-all shrink-0 h-10 w-10 rounded-xl border-2",
+                      isListening ? "text-red-500 bg-red-50 border-red-200 animate-pulse shadow-lg shadow-red-500/10" : "text-slate-400 border-slate-100 hover:text-brand hover:bg-slate-50"
+                    )}
+                    title={isListening ? "Stop Microphone" : "Voice Input"}
+                  >
+                    {isListening ? <MicOff size={18} /> : <Mic size={18} />}
+                  </Button>
+                </div>
                 <Button 
                   variant="ghost" 
                   size="icon" 
@@ -1024,38 +1259,55 @@ export default function ChatInterface({ setIsSidebarOpen }: ChatInterfaceProps) 
               </div>
             </div>
           </div>
-          <div className="flex items-center justify-between mt-4 px-2">
+            <div className="flex items-center justify-between mt-4 px-2">
             <div className="flex items-center gap-2 text-[11px] text-slate-400 font-medium">
               {attachedFile ? (
                 <Dialog>
-                  <DialogTrigger render={
-                    <div className="flex items-center gap-2 bg-brand/5 text-brand px-2 py-1 rounded-lg border border-brand/10 cursor-pointer hover:bg-brand/10 transition-colors">
-                      <FileText size={12} />
-                      <span className="truncate max-w-[100px]">{attachedFile.name}</span>
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setAttachedFile(null);
-                        }} 
-                        className="hover:text-red-500"
-                      >
-                        <XCircle size={12} />
-                      </button>
-                    </div>
-                  } />
+                  <DialogTrigger 
+                    render={
+                      <div className="flex items-center gap-2 bg-brand/5 text-brand px-2 py-1 rounded-lg border border-brand/10 cursor-pointer hover:bg-brand/10 transition-colors">
+                        {attachedFile.preview ? (
+                          <div className="w-5 h-5 rounded overflow-hidden">
+                            <img src={attachedFile.preview} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                          </div>
+                        ) : (
+                          <FileText size={12} />
+                        )}
+                        <span className="truncate max-w-[100px]">{attachedFile.name}</span>
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setAttachedFile(null);
+                          }} 
+                          className="hover:text-red-500"
+                        >
+                          <XCircle size={12} />
+                        </button>
+                      </div>
+                    } 
+                  />
                   <DialogContent className="max-w-3xl max-h-[80vh] overflow-hidden flex flex-col rounded-[2rem]">
                     <DialogHeader>
                       <DialogTitle className="flex items-center gap-2 text-xl font-black">
-                        <FileText className="text-brand" />
+                        {attachedFile.preview ? <ImageIcon className="text-brand" /> : <FileText className="text-brand" />}
                         {attachedFile.name}
                       </DialogTitle>
                     </DialogHeader>
-                    <ScrollArea className="flex-1 mt-4 bg-slate-50 rounded-2xl p-6 border border-slate-100">
-                      <pre className="text-xs font-mono text-slate-700 whitespace-pre-wrap leading-relaxed">
-                        {attachedFile.content}
-                      </pre>
-                    </ScrollArea>
-                    <div className="flex justify-end mt-4">
+                    {attachedFile.preview ? (
+                      <div className="flex-1 overflow-auto flex items-center justify-center bg-slate-100 rounded-2xl p-4 mt-4">
+                        <img src={attachedFile.preview} className="max-w-full max-h-full object-contain shadow-2xl rounded-lg" referrerPolicy="no-referrer" />
+                      </div>
+                    ) : (
+                      <ScrollArea className="flex-1 mt-4 bg-slate-50 rounded-2xl p-6 border border-slate-100">
+                        <pre className="text-xs font-mono text-slate-700 whitespace-pre-wrap leading-relaxed">
+                          {attachedFile.content}
+                        </pre>
+                      </ScrollArea>
+                    )}
+                    <div className="flex justify-between items-center mt-6">
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                        {attachedFile.type || "Text/Plain"}
+                      </p>
                       <Button onClick={() => setAttachedFile(null)} variant="ghost" className="text-red-500 hover:bg-red-50 font-bold rounded-xl">
                         Remove File
                       </Button>
@@ -1085,6 +1337,18 @@ export default function ChatInterface({ setIsSidebarOpen }: ChatInterfaceProps) 
           </div>
         </div>
       </div>
+      <AnimatePresence>
+        {showContextManager && (
+          <motion.div
+            initial={{ width: 0, opacity: 0 }}
+            animate={{ width: 320, opacity: 1 }}
+            exit={{ width: 0, opacity: 0 }}
+            className="hidden xl:block overflow-hidden"
+          >
+            <ContextManager />
+          </motion.div>
+        )}
+      </AnimatePresence>
       {/* Premium Modal */}
       <PremiumModal isOpen={showPremiumModal} onOpenChange={setShowPremiumModal} />
     </div>

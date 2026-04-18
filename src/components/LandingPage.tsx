@@ -128,7 +128,7 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative pt-32 md:pt-40 pb-24 px-4 overflow-hidden min-h-screen flex items-center">
+      <section className="relative pt-24 md:pt-40 pb-16 md:pb-24 px-4 overflow-hidden min-h-[90vh] md:min-h-screen flex items-center">
         {/* Floating Particles/Elements */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           {[...Array(6)].map((_, i) => (
@@ -150,7 +150,7 @@ export default function LandingPage() {
                 repeat: Infinity,
                 ease: "linear"
               }}
-              className="absolute w-32 h-32 md:w-64 md:h-64 rounded-full bg-brand/5 blur-3xl"
+              className="absolute w-32 h-32 md:w-64 md:h-64 rounded-full bg-brand/5 blur-3xl lg:blur-[100px]"
             />
           ))}
         </div>
@@ -167,13 +167,13 @@ export default function LandingPage() {
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.2 }}
-                className="inline-flex items-center gap-3 px-6 py-2 rounded-full bg-white/5 border border-white/10 text-brand text-[10px] font-black mb-12 uppercase tracking-[0.3em] shadow-inner"
+                className="inline-flex items-center gap-3 px-4 md:px-6 py-2 rounded-full bg-white/5 border border-white/10 text-brand text-[8px] md:text-[10px] font-black mb-6 md:mb-12 uppercase tracking-[0.2em] md:tracking-[0.3em] shadow-inner"
               >
-                <div className="w-2 h-2 rounded-full bg-brand animate-ping" />
+                <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-brand animate-ping" />
                 <span>Next-Gen Intelligence Engine</span>
               </motion.div>
               
-              <h1 className="text-[12vw] sm:text-[10vw] md:text-[8vw] font-black text-white tracking-tighter leading-[0.8] mb-12 uppercase italic">
+              <h1 className="text-[14vw] sm:text-[10vw] md:text-[8vw] font-black text-white tracking-tighter leading-[0.8] mb-8 md:mb-12 uppercase italic">
                 Beyond <br /> 
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand via-purple-400 to-indigo-400 animate-gradient-x">Creation.</span>
               </h1>
@@ -182,7 +182,7 @@ export default function LandingPage() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.5, duration: 1 }}
-                className="text-lg md:text-2xl text-slate-400 max-w-3xl mx-auto mb-16 leading-relaxed font-medium tracking-tight"
+                className="text-base md:text-2xl text-slate-400 max-w-2xl md:max-w-3xl mx-auto mb-10 md:mb-16 leading-relaxed font-medium tracking-tight px-4"
               >
                 Experience the shift in human-AI collaboration. Cortex isn't just a chatbot—it's an extension of your own cognitive potential.
               </motion.p>
@@ -191,18 +191,19 @@ export default function LandingPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.7 }}
-                className="flex flex-col sm:flex-row items-center justify-center gap-6"
+                className="flex flex-col sm:flex-row items-center justify-center gap-4 md:gap-6 px-4"
               >
                 <Button 
                   onClick={() => navigate("/chat")}
-                  className="w-full sm:w-auto h-20 px-16 bg-brand hover:bg-brand-dark text-white rounded-2xl font-black text-xl shadow-[0_20px_50px_rgba(124,58,237,0.3)] flex items-center gap-4 group transition-all hover:scale-105 active:scale-95 uppercase italic tracking-tighter"
+                  className="w-full sm:w-auto h-16 md:h-20 px-8 md:px-16 bg-brand hover:bg-brand-dark text-white rounded-2xl font-black text-lg md:text-xl shadow-[0_20px_50px_rgba(124,58,237,0.3)] flex items-center justify-center gap-4 group transition-all hover:scale-105 active:scale-95 uppercase italic tracking-tighter"
                 >
-                  Enter the Neural Core
+                  Enter Neural Core
                   <ArrowRight className="group-hover:translate-x-2 transition-transform" />
                 </Button>
                 <Button 
+                  onClick={() => navigate("/chat")}
                   variant="outline"
-                  className="w-full sm:w-auto h-20 px-16 rounded-2xl font-black text-xl border-white/10 bg-white/5 text-white hover:bg-white/10 backdrop-blur-md flex items-center gap-4 group transition-all"
+                  className="w-full sm:w-auto h-16 md:h-20 px-8 md:px-16 rounded-2xl font-black text-lg md:text-xl border-white/10 bg-white/5 text-white hover:bg-white/10 backdrop-blur-md flex items-center justify-center gap-4 group transition-all"
                 >
                   <Play size={20} className="fill-white group-hover:scale-110 transition-transform" />
                   Experience Demo
@@ -215,11 +216,11 @@ export default function LandingPage() {
               initial={{ opacity: 0, y: 100, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ duration: 1.5, delay: 0.6, ease: [0.16, 1, 0.3, 1] }}
-              className="relative mt-32 w-full max-w-6xl group"
+              className="relative mt-20 md:mt-32 w-full max-w-6xl group px-4 md:px-0"
             >
-              <div className="absolute -inset-1 bg-gradient-to-r from-brand to-purple-600 rounded-[4rem] blur opacity-25 group-hover:opacity-40 transition-opacity duration-1000" />
-              <div className="relative z-10 glass-dark rounded-[3.5rem] p-6 border border-white/10 shadow-2xl overflow-hidden">
-                <div className="bg-[#0f111a] rounded-[2.5rem] aspect-[16/9] flex flex-col overflow-hidden relative shadow-inner">
+              <div className="absolute -inset-1 bg-gradient-to-r from-brand to-purple-600 rounded-[2rem] md:rounded-[4rem] blur opacity-25 group-hover:opacity-40 transition-opacity duration-1000" />
+              <div className="relative z-10 glass-dark rounded-[2rem] md:rounded-[3.5rem] p-3 md:p-6 border border-white/10 shadow-2xl overflow-hidden">
+                <div className="bg-[#0f111a] rounded-[1.5rem] md:rounded-[2.5rem] aspect-video md:aspect-[16/9] flex flex-col overflow-hidden relative shadow-inner">
                   {/* Decorative Header */}
                   <div className="h-14 border-b border-white/5 flex items-center px-10 gap-4 bg-white/[0.02]">
                     <div className="flex gap-2">

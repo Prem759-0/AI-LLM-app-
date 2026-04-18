@@ -18,6 +18,23 @@ import {
 import PremiumModal from "./PremiumModal.tsx";
 import { cn } from "../lib/utils.ts";
 import { format, isToday, isYesterday, subDays, isAfter } from "date-fns";
+import {
+  DndContext, 
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface Chat {
   _id: string;
@@ -30,6 +47,111 @@ interface SidebarProps {
   setIsOpen: (open: boolean) => void;
 }
 
+function SortableChatItem({ 
+  chat, 
+  isActive, 
+  onNavigate, 
+  onRename, 
+  onDelete, 
+  isOpen, 
+  editingChatId, 
+  setEditingChatId, 
+  editTitle, 
+  setEditTitle 
+}: { 
+  chat: Chat, 
+  isActive: boolean, 
+  onNavigate: (id: string) => void,
+  onRename: (id: string) => void,
+  onDelete: (id: string) => void,
+  isOpen: boolean,
+  editingChatId: string | null,
+  setEditingChatId: (id: string | null) => void,
+  editTitle: string,
+  setEditTitle: (t: string) => void
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging
+  } = useSortable({ id: chat._id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 50 : 'auto',
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div 
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      className={cn(
+        "group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer relative",
+        isActive ? "bg-white shadow-sm text-brand" : "text-slate-600 hover:bg-slate-200/50",
+        !isOpen && "md:justify-center md:px-0"
+      )}
+      onClick={() => onNavigate(chat._id)}
+    >
+      <div {...listeners} className="cursor-grab active:cursor-grabbing p-1 -ml-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <MoreHorizontal size={14} className="rotate-90 text-slate-300" />
+      </div>
+      <MessageSquare size={16} className={cn("shrink-0", isActive ? "text-brand" : "text-slate-400 group-hover:text-brand")} />
+      {editingChatId === chat._id ? (
+        <input
+          autoFocus
+          value={editTitle}
+          onChange={(e) => setEditTitle(e.target.value)}
+          onBlur={() => onRename(chat._id)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") onRename(chat._id);
+            if (e.key === "Escape") setEditingChatId(null);
+          }}
+          className="flex-1 bg-white border border-brand/30 rounded px-1 text-sm outline-none"
+          onClick={(e) => e.stopPropagation()}
+        />
+      ) : (
+        <span className={cn("text-sm font-bold truncate flex-1", !isOpen && "md:hidden")}>
+          {chat.title}
+        </span>
+      )}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon" className={cn("h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity", !isOpen && "md:hidden")}>
+            <MoreHorizontal size={14} />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-40 rounded-xl">
+          <DropdownMenuItem 
+            className="text-sm rounded-lg font-bold"
+            onClick={(e) => {
+              e.stopPropagation();
+              setEditingChatId(chat._id);
+              setEditTitle(chat.title);
+            }}
+          >
+            Rename
+          </DropdownMenuItem>
+          <DropdownMenuItem 
+            className="text-sm text-red-500 focus:text-red-500 rounded-lg font-bold"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(chat._id);
+            }}
+          >
+            Delete
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  );
+}
+
 export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
   const { user, logout } = useAuth();
   const { id } = useParams();
@@ -37,6 +159,13 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
   const location = useLocation();
   const [chats, setChats] = useState<Chat[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   useEffect(() => {
     fetchChats();
@@ -51,19 +180,30 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
     }
   };
 
-  const filteredChats = useMemo(() => {
-    if (!searchQuery.trim()) return chats;
-    const q = searchQuery.toLowerCase();
-    return chats.filter(chat => 
-      chat.title.toLowerCase().includes(q)
-    );
-  }, [chats, searchQuery]);
-
   const sortedChats = useMemo(() => {
-    return chats
+    return [...chats]
       .filter(chat => chat.title.toLowerCase().includes(searchQuery.toLowerCase()))
       .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
   }, [chats, searchQuery]);
+
+  // For DND we use the primary state but filtered/sorted if needed
+  // However, DND with sorting/grouping is complex. 
+  // Let's assume the user wants to reorder the results of the current search/filter.
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (active.id !== over?.id) {
+      const oldIndex = chats.findIndex(i => i._id === active.id);
+      const newIndex = chats.findIndex(i => i._id === over?.id);
+      const newItems = arrayMove(chats, oldIndex, newIndex);
+      setChats(newItems);
+      
+      try {
+        await api.post("chat/reorder", { chatIds: newItems.map(c => c._id) });
+      } catch (err) {
+        console.error("Failed to persist order", err);
+      }
+    }
+  };
 
   const groupedChats = useMemo(() => {
     const groups: { [key: string]: Chat[] } = {
@@ -73,10 +213,18 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
       "Archive": []
     };
 
-    sortedChats.forEach(chat => {
+    // We preserve the order from the 'chats' state but distribute into containers
+    chats.forEach(chat => {
+      if (!chat.title.toLowerCase().includes(searchQuery.toLowerCase())) return;
+
       const date = new Date(chat.updatedAt);
       const now = new Date();
-      const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+      now.setHours(0, 0, 0, 0);
+      const chatDate = new Date(chat.updatedAt);
+      chatDate.setHours(0, 0, 0, 0);
+      
+      const diffTime = now.getTime() - chatDate.getTime();
+      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
       if (diffDays === 0) groups["Today"].push(chat);
       else if (diffDays === 1) groups["Yesterday"].push(chat);
@@ -85,7 +233,7 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
     });
 
     return Object.entries(groups).filter(([_, items]) => items.length > 0);
-  }, [sortedChats]);
+  }, [chats, searchQuery]);
 
   const createNewChat = async () => {
     try {
@@ -235,83 +383,50 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
 
       <div className="flex-1 overflow-hidden flex flex-col">
         <ScrollArea className="flex-1 px-2">
-          {groupedChats.map(([group, items]) => (
-            <div key={group} className="mb-4">
-              <div className={cn("px-4 mb-2 flex items-center justify-between", !isOpen && "md:hidden")}>
-                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                  {group === "Today" && <div className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse" />}
-                  {group}
-                </div>
-                {group === "Today" && items.length > 0 && (
-                  <div className="text-[8px] font-black text-brand bg-brand/5 px-2 py-0.5 rounded-lg border border-brand/10 uppercase tracking-tighter">Active</div>
-                )}
-              </div>
-              <div className="space-y-0.5">
-                {items.map((chat) => (
-                  <div 
-                    key={chat._id}
-                    className={cn(
-                      "group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer relative",
-                      id === chat._id ? "bg-white shadow-sm text-brand" : "text-slate-600 hover:bg-slate-200/50",
-                      !isOpen && "md:justify-center md:px-0"
+          <DndContext 
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext 
+              items={chats.map(c => c._id)}
+              strategy={verticalListSortingStrategy}
+            >
+              {groupedChats.map(([group, items]) => (
+                <div key={group} className="mb-4">
+                  <div className={cn("px-4 mb-2 flex items-center justify-between", !isOpen && "md:hidden")}>
+                    <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                      {group === "Today" && <div className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse" />}
+                      {group}
+                    </div>
+                    {group === "Today" && items.length > 0 && (
+                      <div className="text-[8px] font-black text-brand bg-brand/5 px-2 py-0.5 rounded-lg border border-brand/10 uppercase tracking-tighter">Active</div>
                     )}
-                    onClick={() => {
-                      navigate(`/chat/${chat._id}`);
-                      if (window.innerWidth < 768) setIsOpen(false);
-                    }}
-                  >
-                    <MessageSquare size={16} className={cn("shrink-0", id === chat._id ? "text-brand" : "text-slate-400 group-hover:text-brand")} />
-                    {editingChatId === chat._id ? (
-                      <input
-                        autoFocus
-                        value={editTitle}
-                        onChange={(e) => setEditTitle(e.target.value)}
-                        onBlur={() => renameChat(chat._id)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") renameChat(chat._id);
-                          if (e.key === "Escape") setEditingChatId(null);
-                        }}
-                        className="flex-1 bg-white border border-brand/30 rounded px-1 text-sm outline-none"
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                    ) : (
-                      <span className={cn("text-sm font-bold truncate flex-1", !isOpen && "md:hidden")}>
-                        {chat.title}
-                      </span>
-                    )}
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className={cn("h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity", !isOpen && "md:hidden")}>
-                          <MoreHorizontal size={14} />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-40 rounded-xl">
-                        <DropdownMenuItem 
-                          className="text-sm rounded-lg font-bold"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setEditingChatId(chat._id);
-                            setEditTitle(chat.title);
-                          }}
-                        >
-                          Rename
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          className="text-sm text-red-500 focus:text-red-500 rounded-lg font-bold"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            deleteChat(chat._id);
-                          }}
-                        >
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
                   </div>
-                ))}
-              </div>
-            </div>
-          ))}
+                  <div className="space-y-0.5">
+                    {items.map((chat) => (
+                      <SortableChatItem
+                        key={chat._id}
+                        chat={chat}
+                        isActive={id === chat._id}
+                        isOpen={isOpen}
+                        editingChatId={editingChatId}
+                        setEditingChatId={setEditingChatId}
+                        editTitle={editTitle}
+                        setEditTitle={setEditTitle}
+                        onNavigate={(chatId) => {
+                          navigate(`/chat/${chatId}`);
+                          if (window.innerWidth < 768) setIsOpen(false);
+                        }}
+                        onRename={renameChat}
+                        onDelete={deleteChat}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </SortableContext>
+          </DndContext>
         </ScrollArea>
       </div>
 

@@ -1,8 +1,12 @@
 import express from "express";
 import axios from "axios";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { ClerkExpressRequireAuth } from "@clerk/clerk-sdk-node";
+import { User } from "../models/User.ts";
 
 const router = express.Router();
+
+const FREE_MESSAGE_LIMIT = 10;
 
 const OPENROUTER_MODELS = {
   text: "google/gemma-2-9b-it:free",
@@ -13,14 +17,52 @@ const OPENROUTER_MODELS = {
 };
 
 const GEMINI_MODELS = {
-  text: "gemini-2.0-flash-exp",
-  code: "gemini-2.0-flash-exp",
-  tech: "gemini-2.0-flash-exp",
-  thinking: "gemini-2.0-flash-thinking-exp",
+  text: "gemini-3-flash-preview",
+  code: "gemini-3.1-pro-preview",
+  tech: "gemini-3-flash-preview",
+  thinking: "gemini-3-flash-preview",
 };
 
-router.post("/", async (req, res) => {
+router.post("/summarize", ClerkExpressRequireAuth(), async (req, res) => {
+  const { messages } = req.body;
+  if (!process.env.GEMINI_API_KEY) return res.status(500).json({ error: "Missing API Key" });
+
+  try {
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-3-flash-preview",
+      systemInstruction: "Summarize the following chat conversation into a very short, catchy title (max 6 words). Output ONLY the title."
+    });
+
+    const context = messages.map((m: any) => `${m.role}: ${m.content}`).join("\n");
+    const result = await model.generateContent(context);
+    res.json({ summary: result.response.text().replace(/^"|"$/g, '') });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post("/", ClerkExpressRequireAuth(), async (req: any, res) => {
   const { messages, stream = true, model: requestedModel } = req.body;
+  const { userId } = req.auth;
+
+  // Usage check
+  let user = await User.findOne({ clerkId: userId });
+  if (!user) {
+    user = new User({ clerkId: userId, email: "syncing..." });
+    await user.save();
+  }
+
+  if (!user.isPro && user.usage.messages >= FREE_MESSAGE_LIMIT) {
+    return res.status(403).json({ 
+      error: "Usage limit reached", 
+      limitReached: true,
+      message: "You've reached your free message limit. Please upgrade to Pro to continue."
+    });
+  }
+
+  // Update usage (optimistic, but good enough for now)
+  await User.findOneAndUpdate({ clerkId: userId }, { $inc: { "usage.messages": 1 } });
   
   // Try Gemini first if key is available
   if (process.env.GEMINI_API_KEY) {
@@ -120,8 +162,27 @@ router.post("/", async (req, res) => {
   }
 });
 
-router.post("/image", async (req, res) => {
+router.post("/image", ClerkExpressRequireAuth(), async (req: any, res) => {
   const { prompt, size = "1K" } = req.body;
+  const { userId } = req.auth;
+
+  // Usage check
+  let user = await User.findOne({ clerkId: userId });
+  if (!user) {
+    user = new User({ clerkId: userId, email: "syncing..." });
+    await user.save();
+  }
+
+  const FREE_IMAGE_LIMIT = 3;
+  if (!user.isPro && user.usage.images >= FREE_IMAGE_LIMIT) {
+    return res.status(403).json({ 
+      error: "Usage limit reached", 
+      limitReached: true,
+      message: "You've reached your free image limit. Please upgrade to Pro to continue."
+    });
+  }
+
+  await User.findOneAndUpdate({ clerkId: userId }, { $inc: { "usage.images": 1 } });
   
   if (!process.env.GEMINI_API_KEY) {
     return res.status(500).json({ error: "GEMINI_API_KEY not configured for image generation" });

@@ -2,23 +2,91 @@ import express from "express";
 import { createServer as createViteServer } from "vite";
 import path from "path";
 import { fileURLToPath } from "url";
+import fs from "fs/promises";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
 import cors from "cors";
-import authRoutes from "./src/routes/auth.ts";
+import { ClerkExpressWithAuth } from "@clerk/clerk-sdk-node";
 import chatRoutes from "./src/routes/chat.ts";
 import aiRoutes from "./src/routes/ai.ts";
+import billingRoutes from "./src/routes/billing.ts";
 
 dotenv.config();
+
+// Clerk v5 requires CLERK_PUBLISHABLE_KEY and CLERK_SECRET_KEY in the environment.
+// We map the VITE_ version to the standard version if it's missing for backend compatibility.
+if (!process.env.CLERK_PUBLISHABLE_KEY && process.env.VITE_CLERK_PUBLISHABLE_KEY) {
+  process.env.CLERK_PUBLISHABLE_KEY = process.env.VITE_CLERK_PUBLISHABLE_KEY;
+}
+
+if (!process.env.CLERK_SECRET_KEY) {
+  console.warn("WARNING: CLERK_SECRET_KEY is missing! Backend authentication WILL fail.");
+}
+
+if (!process.env.VITE_CLERK_PUBLISHABLE_KEY && !process.env.CLERK_PUBLISHABLE_KEY) {
+  console.warn("WARNING: CLERK_PUBLISHABLE_KEY is missing! Backend authentication WILL fail.");
+}
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
 
+// Stripe Webhook (needs raw body, MUST be before express.json)
+app.post("/api/billing/webhook", express.raw({ type: "application/json" }), async (req: any, res: any) => {
+  const sig = req.headers["stripe-signature"];
+  const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+  if (!sig || !endpointSecret) {
+    return res.status(400).send("Webhook Error: Missing signature or secret");
+  }
+
+  try {
+    const Stripe = (await import("stripe")).default;
+    const stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
+      apiVersion: "2026-03-25.dahlia" as any,
+    });
+    const event = stripeClient.webhooks.constructEvent(req.body, sig, endpointSecret);
+
+    const { User } = await import("./src/models/User.ts");
+
+    switch (event.type) {
+      case "checkout.session.completed": {
+        const session = event.data.object as any;
+        await User.findOneAndUpdate(
+          { clerkId: session.metadata.clerkId },
+          { 
+            isPro: true, 
+            stripeCustomerId: session.customer, 
+            subscriptionId: session.subscription,
+            email: session.customer_details?.email 
+          },
+          { upsert: true }
+        );
+        break;
+      }
+      case "customer.subscription.deleted": {
+        const sub = event.data.object as any;
+        await User.findOneAndUpdate(
+          { subscriptionId: sub.id },
+          { isPro: false }
+        );
+        break;
+      }
+    }
+
+    res.json({ received: true });
+  } catch (err: any) {
+    console.error("Webhook Error:", err.message);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+});
+
 // Standard Middleware
 app.use(express.json());
 app.use(cors());
+
+app.use(ClerkExpressWithAuth());
 
 // Database connection helper for serverless
 let cachedDb: typeof mongoose | null = null;
@@ -72,9 +140,9 @@ app.get("/api/health", (req, res) => {
 });
 
 // API Routes
-app.use("/api/auth", authRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/ai", aiRoutes);
+app.use("/api/billing", billingRoutes);
 
 // Catch unmatched API routes
 app.all("/api/*", (req, res) => {
@@ -107,9 +175,25 @@ async function bootstrap() {
     try {
       const vite = await createViteServer({
         server: { middlewareMode: true },
-        appType: "spa",
+        appType: "custom",
       });
       app.use(vite.middlewares);
+      
+      app.get("*", async (req, res, next) => {
+        // Exclude API and known asset extensions to avoid accidental fallback
+        if (req.path.startsWith("/api") || req.path.includes(".")) {
+          return next();
+        }
+
+        const url = req.originalUrl;
+        try {
+          let template = await fs.readFile(path.resolve(__dirname, "index.html"), "utf-8");
+          template = await vite.transformIndexHtml(url, template);
+          res.status(200).set({ "Content-Type": "text/html" }).end(template);
+        } catch (e: any) {
+          next(e);
+        }
+      });
     } catch (err) {
       console.error("Vite server error:", err);
     }

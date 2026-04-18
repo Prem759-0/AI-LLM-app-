@@ -1,9 +1,8 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
-import { Mail, Lock, User, ArrowRight, Sparkles } from "lucide-react";
-import { useAuth } from "../App.tsx";
-import api from "../lib/api.ts";
+import { motion, AnimatePresence } from "framer-motion";
+import { Mail, Lock, User, ArrowRight, Sparkles, ShieldCheck, AtSign } from "lucide-react";
+import { useSignIn, useSignUp } from "@clerk/clerk-react";
 import { Button } from "./ui/button.tsx";
 import { Input } from "./ui/input.tsx";
 import { toast } from "sonner";
@@ -11,34 +10,227 @@ import { toast } from "sonner";
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  
+  // Verification state
+  const [verifying, setVerifying] = useState(false);
+  const [code, setCode] = useState("");
+  
+  const { isLoaded: isSignInLoaded, signIn, setActive: setSignInActive } = useSignIn();
+  const { isLoaded: isSignUpLoaded, signUp, setActive: setSignUpActive } = useSignUp();
   const navigate = useNavigate();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleLogin = async () => {
+    if (!isSignInLoaded) return;
+    try {
+      const result = await signIn.create({
+        identifier: email,
+        password,
+      });
+
+      if (result.status === "complete") {
+        await setSignInActive({ session: result.createdSessionId });
+        toast.success("Welcome back!");
+        navigate("/");
+      } else if (result.status === "needs_first_factor") {
+        // Handle cases where email verification is required during sign in
+        const emailFactor = result.supportedFirstFactors.find(
+          (f: any) => f.strategy === "email_code"
+        );
+        
+        if (emailFactor) {
+          await signIn.prepareFirstFactor({
+            strategy: "email_code",
+            emailAddressId: (emailFactor as any).emailAddressId,
+          });
+          setVerifying(true);
+          toast.info("Verification code sent to your email.");
+        } else {
+          toast.error("Please complete your sign-in on the Clerk dashboard or check your security settings.");
+        }
+      } else {
+        console.log("Login result:", result);
+        toast.error("Sign in requires additional steps.");
+      }
+    } catch (err: any) {
+      console.error(err);
+      const firstError = err.errors?.[0];
+      if (firstError?.code === "form_identifier_not_found" || firstError?.message?.includes("Couldn't find your account")) {
+        toast.error("Account not found", {
+          description: "Check your email address or click 'Create an account' below.",
+          duration: 5000,
+        });
+      } else if (firstError?.code === "strategy_for_user_invalid") {
+        toast.error("Verification method not supported for this account. Try another way.");
+      } else {
+        toast.error(firstError?.message || "Failed to sign in");
+      }
+    }
+  };
+
+  const handleSignup = async () => {
+    if (!isSignUpLoaded) return;
+    try {
+      // 1. Create the sign up attempt
+      const result = await signUp.create({
+        emailAddress: email,
+        password,
+        username: username || email.split('@')[0].replace(/[^a-zA-Z0-9]/g, '') + Math.floor(Math.random() * 1000),
+        firstName: name.split(' ')[0],
+        lastName: name.split(' ').slice(1).join(' '),
+      });
+
+      // 2. Check if we need to verify email
+      if (result.status === "missing_requirements") {
+        if (result.unverifiedFields.includes("email_address")) {
+          await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
+          setVerifying(true);
+          toast.info("A 6-digit verification code was sent to your email.");
+        } else {
+          toast.error("Missing requirements: " + result.unverifiedFields.join(", "));
+        }
+      } else if (result.status === "complete") {
+        await setSignUpActive({ session: result.createdSessionId });
+        toast.success("Account created successfully!");
+        navigate("/");
+      }
+    } catch (err: any) {
+      console.error(err);
+      const firstError = err.errors?.[0];
+      if (firstError?.code === "form_identifier_exists") {
+        toast.error("This email is already in use. Try signing in instead.");
+        setIsLogin(true);
+      } else {
+        toast.error(firstError?.message || "Failed to create account");
+      }
+    }
+  };
+
+  const verifyCode = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const endpoint = isLogin ? "auth/login" : "auth/signup";
-    
     try {
-      const res = await api.post(endpoint, { email, password, name });
-      login(res.data.token, res.data.user);
-      toast.success(isLogin ? "Welcome back!" : "Account created successfully!");
-      navigate("/");
+      if (isLogin) {
+        if (!isSignInLoaded) return;
+        const result = await signIn.attemptFirstFactor({
+          strategy: "email_code",
+          code,
+        });
+        if (result.status === "complete") {
+          await setSignInActive({ session: result.createdSessionId });
+          toast.success("Identity verified! Welcome.");
+          navigate("/");
+        } else {
+          toast.error("Verification incomplete. Status: " + result.status);
+        }
+      } else {
+        if (!isSignUpLoaded) return;
+        const result = await signUp.attemptEmailAddressVerification({
+          code,
+        });
+
+        if (result.status === "complete") {
+          await setSignUpActive({ session: result.createdSessionId });
+          toast.success("Email verified! Account created.");
+          navigate("/");
+        } else {
+          console.log("Verification result:", result);
+          toast.error("Verification failed. Please try again.");
+        }
+      }
     } catch (err: any) {
-      console.error("Auth Error:", err);
-      const errorData = err.response?.data;
-      const errorMsg = errorData?.details || errorData?.error || errorData?.message || err.message || "Something went wrong";
-      toast.error(String(errorMsg));
+      console.error(err);
+      toast.error(err.errors?.[0]?.message || "Verification failed.");
     } finally {
       setLoading(false);
     }
   };
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    if (isLogin) {
+      await handleLogin();
+    } else {
+      await handleSignup();
+    }
+    setLoading(false);
+  };
+
+  const resendCode = async () => {
+    try {
+      if (isLogin) {
+        if (!isSignInLoaded) return;
+        const factor = signIn.supportedFirstFactors.find((f: any) => f.strategy === "email_code");
+        if (factor) {
+          await signIn.prepareFirstFactor({ strategy: "email_code", emailAddressId: (factor as any).emailAddressId });
+          toast.success("A new code has been sent.");
+        }
+      } else {
+        if (!isSignUpLoaded) return;
+        await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
+        toast.success("A new code has been sent.");
+      }
+    } catch (err: any) {
+      toast.error("Failed to resend code. Please try again later.");
+    }
+  };
+
+  if (verifying) {
+    return (
+      <div className="flex min-h-screen w-full items-center justify-center bg-[#fcfcff] p-4 relative overflow-hidden">
+        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-md relative z-10 font-sans">
+          <div className="glass p-8 md:p-10 rounded-[2.5rem] shadow-[0_32px_64px_-12px_rgba(0,0,0,0.08)] border-white/60 backdrop-blur-2xl">
+            <div className="flex flex-col items-center mb-8">
+              <div className="w-16 h-16 bg-brand/10 text-brand rounded-2xl flex items-center justify-center mb-6">
+                <ShieldCheck size={32} />
+              </div>
+              <h1 className="text-3xl font-black text-slate-900 tracking-tight">Check your email</h1>
+              <p className="text-slate-500 mt-2 font-medium text-center">We've sent a 6-digit code to <span className="text-slate-900 font-bold">{email}</span></p>
+            </div>
+            
+            <form onSubmit={verifyCode} className="space-y-6">
+              <div className="space-y-2">
+                <div className="relative">
+                  <Input
+                    type="text"
+                    placeholder="Enter 6-digit code"
+                    value={code}
+                    onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    className="h-16 text-center text-xl sm:text-2xl tracking-[0.2em] sm:tracking-[0.5em] font-black rounded-2xl bg-white/50 border-slate-100 focus:ring-4 focus:ring-brand/10 focus:border-brand transition-all max-w-full overflow-hidden"
+                    required
+                  />
+                </div>
+              </div>
+              
+              <Button disabled={loading} className="w-full h-14 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-black transition-all shadow-lg">
+                {loading ? "Verifying..." : "Verify Identity"}
+              </Button>
+            </form>
+
+            <div className="mt-8 space-y-4">
+              <button onClick={resendCode} className="w-full text-xs text-brand font-black uppercase tracking-widest hover:underline transition-all text-center">
+                Didn't get the code? Resend
+              </button>
+              
+              <button onClick={() => setVerifying(false)} className="w-full text-xs text-slate-400 font-black uppercase tracking-widest hover:text-slate-600 transition-colors text-center">
+                Back to sign {isLogin ? "in" : "up"}
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex min-h-screen w-full items-center justify-center bg-[#fcfcff] p-4 relative overflow-hidden">
+    <div className="flex min-h-screen w-full items-center justify-center bg-[#fcfcff] p-4 relative overflow-hidden font-sans">
+      {/* Container for Clerk bot protection (Turnstile) */}
+      <div id="clerk-captcha" className="fixed bottom-0 left-0 w-0 h-0 overflow-hidden pointer-events-none opacity-0"></div>
+      
       {/* Dynamic Background Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <motion.div 
@@ -97,6 +289,27 @@ export default function AuthPage() {
                     placeholder="Enter your name"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
+                    className="pl-12 h-14 rounded-2xl bg-white/50 border-slate-100 focus:ring-4 focus:ring-brand/10 focus:border-brand transition-all font-bold text-slate-700"
+                    required={!isLogin}
+                  />
+                </div>
+              </motion.div>
+            )}
+
+            {!isLogin && (
+              <motion.div 
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                className="space-y-1.5"
+              >
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Username</label>
+                <div className="relative group">
+                  <AtSign className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand transition-colors" size={18} />
+                  <Input
+                    type="text"
+                    placeholder="Choose a username"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
                     className="pl-12 h-14 rounded-2xl bg-white/50 border-slate-100 focus:ring-4 focus:ring-brand/10 focus:border-brand transition-all font-bold text-slate-700"
                     required={!isLogin}
                   />
@@ -188,7 +401,10 @@ export default function AuthPage() {
           <div className="mt-10 text-center">
             <button 
               type="button"
-              onClick={() => setIsLogin(!isLogin)}
+              onClick={() => {
+                setIsLogin(!isLogin);
+                setVerifying(false);
+              }}
               className="text-xs text-slate-400 hover:text-brand transition-colors font-black uppercase tracking-widest"
             >
               {isLogin ? (

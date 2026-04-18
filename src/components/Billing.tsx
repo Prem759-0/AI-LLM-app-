@@ -4,9 +4,26 @@ import { CreditCard, CheckCircle2, Zap, Star, Shield, History, Download } from "
 import { Button } from "./ui/button.tsx";
 import { Progress } from "./ui/progress.tsx";
 import PremiumModal from "./PremiumModal.tsx";
+import api from "../lib/api.ts";
+import { toast } from "sonner";
 
 export default function Billing() {
   const [showPremiumModal, setShowPremiumModal] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const handleUpgrade = async () => {
+    try {
+      setLoading(true);
+      const res = await api.post("billing/create-checkout-session", { plan: "pro" });
+      if (res.data.url) {
+        window.location.href = res.data.url;
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to start checkout");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="flex flex-col h-full w-full max-w-4xl mx-auto px-4 md:px-8 py-8 overflow-y-auto no-scrollbar">
@@ -38,10 +55,11 @@ export default function Billing() {
               <p className="text-slate-500 font-bold mt-1">Perfect for getting started with AI.</p>
             </div>
             <Button 
-              onClick={() => setShowPremiumModal(true)}
+              disabled={loading}
+              onClick={handleUpgrade}
               className="bg-slate-900 hover:bg-slate-800 text-white rounded-2xl px-8 h-14 font-black shadow-xl"
             >
-              Upgrade to Pro
+              {loading ? "Preparing..." : "Upgrade to Pro"}
             </Button>
           </div>
 

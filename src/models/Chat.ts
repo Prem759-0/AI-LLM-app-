@@ -7,15 +7,17 @@ const messageSchema = new mongoose.Schema({
 });
 
 const chatSchema = new mongoose.Schema({
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+  userId: { type: String, required: true },
   title: { type: String, default: "New Chat" },
+  order: { type: Number, default: 0 },
   messages: [messageSchema],
   updatedAt: { type: Date, default: Date.now },
 });
 
 interface IChat extends mongoose.Document {
-  userId: mongoose.Types.ObjectId;
+  userId: string;
   title: string;
+  order: number;
   messages: any[];
   updatedAt: Date;
 }

@@ -1,14 +1,15 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { Settings, Moon, Sun, Bell, Globe, Cpu, Zap, Shield, Layout, Crown } from "lucide-react";
+import { Settings, Moon, Sun, Bell, Globe, Cpu, Zap, Shield, Layout } from "lucide-react";
 import { Button } from "./ui/button.tsx";
 import { Switch } from "./ui/switch.tsx";
 import { cn } from "../lib/utils.ts";
 import { toast } from "sonner";
 import PremiumModal from "./PremiumModal.tsx";
+import { useTheme } from "../App.tsx";
 
 export default function SettingsPage() {
-  const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');
+  const { theme, setTheme } = useTheme();
   const [streaming, setStreaming] = useState(() => localStorage.getItem('streaming') !== 'false');
   const [reasoning, setReasoning] = useState(() => localStorage.getItem('reasoning') === 'true');
   const [showPremiumModal, setShowPremiumModal] = useState(false);
@@ -18,15 +19,6 @@ export default function SettingsPage() {
     updates: false,
     security: true
   });
-
-  useEffect(() => {
-    localStorage.setItem('theme', theme);
-    if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [theme]);
 
   const handleSave = () => {
     localStorage.setItem('streaming', streaming.toString());
