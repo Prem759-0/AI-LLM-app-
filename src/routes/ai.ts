@@ -53,13 +53,12 @@ router.post("/", ClerkExpressRequireAuth(), async (req: any, res) => {
     await user.save();
   }
 
-  if (!user.isPro && user.usage.messages >= FREE_MESSAGE_LIMIT) {
-    return res.status(403).json({ 
-      error: "Usage limit reached", 
-      limitReached: true,
-      message: "You've reached your free message limit. Please upgrade to Pro to continue."
-    });
-  }
+    if (!user.isPro && user.usage.messages >= FREE_MESSAGE_LIMIT) {
+      return res.status(200).json({ 
+        limitReached: true,
+        message: "You've reached your free message limit. Please upgrade to Pro to continue."
+      });
+    }
 
   // Update usage (optimistic, but good enough for now)
   await User.findOneAndUpdate({ clerkId: userId }, { $inc: { "usage.messages": 1 } });
@@ -154,10 +153,12 @@ router.post("/", ClerkExpressRequireAuth(), async (req: any, res) => {
       res.json(response.data);
     }
   } catch (err: any) {
-    console.error("[AI] Final Fallback Error:", err.response?.data || err.message);
+    const errorDetails = err.response?.data || err.message;
+    console.error("[AI] Final Fallback Error:", errorDetails);
     res.status(500).json({ 
       error: "AI service error",
-      details: "Both Gemini and OpenRouter failed. Check your API keys."
+      details: "Both Gemini and OpenRouter failed.",
+      raw: errorDetails 
     });
   }
 });
@@ -175,8 +176,7 @@ router.post("/image", ClerkExpressRequireAuth(), async (req: any, res) => {
 
   const FREE_IMAGE_LIMIT = 3;
   if (!user.isPro && user.usage.images >= FREE_IMAGE_LIMIT) {
-    return res.status(403).json({ 
-      error: "Usage limit reached", 
+    return res.status(200).json({ 
       limitReached: true,
       message: "You've reached your free image limit. Please upgrade to Pro to continue."
     });

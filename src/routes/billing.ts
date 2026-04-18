@@ -5,7 +5,7 @@ import { User } from "../models/User.ts";
 
 const router = express.Router();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
-  apiVersion: "2026-03-25.dahlia" as any,
+  apiVersion: "2024-11-20.acacia" as any,
 });
 
 router.post("/create-checkout-session", ClerkExpressRequireAuth(), async (req: any, res) => {

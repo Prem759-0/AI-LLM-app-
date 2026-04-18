@@ -6,10 +6,18 @@ import { Progress } from "./ui/progress.tsx";
 import PremiumModal from "./PremiumModal.tsx";
 import api from "../lib/api.ts";
 import { toast } from "sonner";
+import { useAuth } from "../App.tsx";
 
 export default function Billing() {
+  const { user } = useAuth();
   const [showPremiumModal, setShowPremiumModal] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // Derived usage
+  const messagesUsed = user?.usage?.messages || 0;
+  const messagesLimit = user?.isPro ? Infinity : 10;
+  const imagesUsed = user?.usage?.images || 0;
+  const imagesLimit = user?.isPro ? Infinity : 3;
 
   const handleUpgrade = async () => {
     try {
@@ -64,16 +72,32 @@ export default function Billing() {
           </div>
 
           <div className="space-y-6">
-            <div className="p-6 rounded-3xl bg-slate-50 border border-slate-100">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                  <Zap size={12} className="text-brand" />
-                  Usage this month
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="p-6 rounded-3xl bg-slate-50 border border-slate-100 dark:bg-white/5 dark:border-white/10">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                    <Zap size={12} className="text-brand" />
+                    Messages
+                  </div>
+                  <span className="text-[10px] font-black text-brand uppercase tracking-widest">
+                    {messagesUsed} / {user?.isPro ? "∞" : messagesLimit}
+                  </span>
                 </div>
-                <span className="text-[10px] font-black text-brand uppercase tracking-widest">45 / 100 Messages</span>
+                <Progress value={user?.isPro ? 100 : (messagesUsed / messagesLimit) * 100} className="h-2 bg-white dark:bg-slate-900" />
               </div>
-              <Progress value={45} className="h-2 bg-white" />
-              <p className="text-[10px] text-slate-400 mt-3 font-bold">Your usage resets on May 1st, 2026</p>
+
+              <div className="p-6 rounded-3xl bg-slate-50 border border-slate-100 dark:bg-white/5 dark:border-white/10">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                    <Star size={12} className="text-amber-500" />
+                    Images
+                  </div>
+                  <span className="text-[10px] font-black text-amber-500 uppercase tracking-widest">
+                    {imagesUsed} / {user?.isPro ? "∞" : imagesLimit}
+                  </span>
+                </div>
+                <Progress value={user?.isPro ? 100 : (imagesUsed / imagesLimit) * 100} className="h-2 bg-white dark:bg-slate-900" />
+              </div>
             </div>
           </div>
         </section>

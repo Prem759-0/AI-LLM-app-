@@ -61,34 +61,32 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [userData, setUserData] = useState<{ isPro: boolean; usage: any } | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   
-  useEffect(() => {
-    let isMounted = true;
-    const syncToken = async () => {
-      try {
-        if (clerkUser) {
-          const token = await getToken();
-          if (isMounted) {
-            setAuthToken(token);
-            if (token) localStorage.setItem("token", token);
-            // Fetch additional user data from our backend
-            const res = await api.get('billing/status');
-            setUserData(res.data);
-          }
-        } else {
-          if (isMounted) {
-            setAuthToken(null);
-            localStorage.removeItem("token");
-            setUserData(null);
-          }
-        }
-      } catch (err) {
-        console.error("Clerk Token Sync Error:", err);
-      } finally {
-        if (isMounted) setAuthLoading(false);
+  const syncToken = async () => {
+    try {
+      if (clerkUser) {
+        const token = await getToken();
+        setAuthToken(token);
+        if (token) localStorage.setItem("token", token);
+        // Fetch additional user data from our backend
+        const res = await api.get('billing/status').catch(e => {
+          console.error("Billing status fetch failed", e);
+          return { data: { isPro: false, usage: { messages: 0, images: 0 } } };
+        });
+        setUserData(res.data);
+      } else {
+        setAuthToken(null);
+        localStorage.removeItem("token");
+        setUserData(null);
       }
-    };
+    } catch (err) {
+      console.error("Clerk Token Sync Error:", err);
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  useEffect(() => {
     syncToken();
-    return () => { isMounted = false; };
   }, [clerkUser, getToken]);
 
   const user = clerkUser ? {
@@ -175,7 +173,12 @@ export default function App() {
       <ClerkProviderWithNavigation>
         <AuthProvider>
           <ThemeContext.Provider value={{ theme, setTheme }}>
-            <div className={cn("min-h-screen w-full transition-colors duration-300", theme === 'dark' ? "bg-slate-950" : "bg-[#f8f7ff]")}>
+            <div className={cn(
+              "min-h-screen w-full transition-colors duration-500", 
+              theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+                ? "bg-slate-950" 
+                : "bg-[#f8f7ff]"
+            )}>
               <Routes>
                 <Route path="/" element={<LandingPage />} />
                 <Route path="/auth/*" element={<AuthPage />} />

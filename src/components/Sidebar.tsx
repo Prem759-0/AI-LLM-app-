@@ -295,35 +295,38 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
       )}>
       <div className="p-4 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-brand rounded-xl flex items-center justify-center text-white font-black shadow-lg shadow-brand/20 relative overflow-hidden group shrink-0">
+          <div className="w-10 h-10 bg-brand rounded-2xl flex items-center justify-center text-white font-black shadow-lg shadow-brand/20 relative overflow-hidden group shrink-0">
             <div className="absolute inset-0 bg-gradient-to-tr from-brand to-indigo-500 opacity-100" />
-            <Sparkles size={20} className="relative z-10 group-hover:scale-110 transition-transform" />
+            <Sparkles size={22} className="relative z-10 group-hover:scale-110 transition-transform" />
           </div>
-          <span className={cn("font-black text-xl text-slate-800 tracking-tighter uppercase italic truncate pr-4", !isOpen && "md:hidden")}>Cortex</span>
+          <span className={cn("font-black text-2xl text-slate-900 tracking-tighter uppercase italic truncate pr-4", !isOpen && "md:hidden")}>Cortex</span>
         </Link>
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          onClick={() => setIsOpen(!isOpen)}
-          className={cn(
-            "text-slate-500 hover:bg-white hover:text-brand shadow-sm rounded-xl transition-all border border-slate-100", 
-            !isOpen ? "md:mx-auto" : ""
-          )}
-        >
-          {isOpen ? <PanelLeftClose size={20} /> : <PanelLeftOpen size={20} />}
-        </Button>
+        <div className="absolute left-full top-[10%] ml-0 h-[80%] w-4 pointer-events-auto flex items-center group/toggle">
+           <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => setIsOpen(!isOpen)}
+            className={cn(
+              "absolute left-0 opacity-0 group-hover/toggle:opacity-100 bg-white shadow-xl rounded-full h-8 w-8 border border-slate-200 -translate-x-1/2 transition-all hover:scale-110 active:scale-95 z-50",
+               !isOpen && "md:opacity-40"
+            )}
+          >
+            {isOpen ? <PanelLeftClose size={16} /> : <PanelLeftOpen size={16} />}
+          </Button>
+        </div>
       </div>
 
       <div className={cn("px-4 mb-4", !isOpen && "md:px-2")}>
         <Button 
           onClick={createNewChat}
           className={cn(
-            "w-full bg-slate-900 hover:bg-slate-800 text-white rounded-xl py-6 flex items-center gap-2 shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98]",
-            !isOpen && "md:p-0 md:h-12 md:w-12 md:mx-auto md:justify-center"
+            "w-full bg-slate-900 hover:bg-black text-white rounded-2xl py-7 flex items-center gap-3 shadow-[0_10px_20px_-5px_rgba(0,0,0,0.3)] transition-all hover:translate-y-[-2px] active:translate-y-[0px] relative overflow-hidden group",
+            !isOpen && "md:p-0 md:h-12 md:w-12 md:mx-auto md:justify-center rounded-xl"
           )}
         >
-          <Plus size={18} className="shrink-0" />
-          <span className={cn("font-bold", !isOpen && "md:hidden")}>New chat</span>
+          <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/5 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+          <Plus size={20} className="shrink-0 text-brand" strokeWidth={3} />
+          <span className={cn("font-black text-sm uppercase tracking-wider", !isOpen && "md:hidden")}>New chat</span>
         </Button>
       </div>
 

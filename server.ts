@@ -44,7 +44,7 @@ app.post("/api/billing/webhook", express.raw({ type: "application/json" }), asyn
   try {
     const Stripe = (await import("stripe")).default;
     const stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
-      apiVersion: "2026-03-25.dahlia" as any,
+      apiVersion: "2024-11-20.acacia" as any,
     });
     const event = stripeClient.webhooks.constructEvent(req.body, sig, endpointSecret);
 
@@ -86,6 +86,18 @@ app.post("/api/billing/webhook", express.raw({ type: "application/json" }), asyn
 app.use(express.json());
 app.use(cors());
 
+// Add a simple error logger
+app.use((req, res, next) => {
+  const oldJson = res.json;
+  res.json = function(data) {
+    if (res.statusCode >= 400) {
+      console.error(`[API Error] ${req.method} ${req.path} -> ${res.statusCode}:`, data);
+    }
+    return oldJson.call(this, data);
+  };
+  next();
+});
+
 app.use(ClerkExpressWithAuth());
 
 // Database connection helper for serverless
@@ -117,8 +129,19 @@ const connectDB = async () => {
 
 // Middleware to ensure DB is connected for API routes
 app.use("/api", async (req, res, next) => {
-  await connectDB();
-  next();
+  try {
+    const db = await connectDB();
+    if (!db || mongoose.connection.readyState !== 1) {
+      console.error("[Backend] Database connection required for /api but failed.");
+      return res.status(503).json({ 
+        error: "Database connection unavailable", 
+        details: "Please check your MONGODB_URI environment variable in settings." 
+      });
+    }
+    next();
+  } catch (err: any) {
+    res.status(500).json({ error: "Database initialization error", details: err.message });
+  }
 });
 
 // Logging middleware

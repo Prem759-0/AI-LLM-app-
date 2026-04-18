@@ -7,6 +7,7 @@ import { Input } from "./ui/input.tsx";
 import { Card } from "./ui/card.tsx";
 import { toast } from "sonner";
 import { generateImage } from "../lib/gemini.ts";
+import PremiumModal from "./PremiumModal.tsx";
 import { cn } from "../lib/utils.ts";
 
 export default function ImageGen() {
@@ -15,6 +16,7 @@ export default function ImageGen() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [selectedSize, setSelectedSize] = useState<"1K" | "2K" | "4K">("1K");
+  const [showPremiumModal, setShowPremiumModal] = useState(false);
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
@@ -24,12 +26,36 @@ export default function ImageGen() {
 
     setIsGenerating(true);
     try {
-      const imageUrl = await generateImage(prompt, selectedSize);
-      setGeneratedImage(imageUrl);
+      const response = await fetch("/api/ai/image", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("token")}`
+        },
+        body: JSON.stringify({ prompt, size: selectedSize })
+      });
+      
+      const data = await response.json();
+      
+      if (data.limitReached) {
+        toast.info("Free limit reached!", {
+          description: "Upgrade to Pro for unlimited generation."
+        });
+        const PremiumModal = (await import("./PremiumModal.tsx")).default;
+        // Since we can't easily open the modal from here without passing props down, 
+        // we'll trigger a custom event or just redirect/show toast.
+        // Actually, let's just use a state for the modal in this component too.
+        setShowPremiumModal(true);
+        return;
+      }
+
+      if (!response.ok) throw new Error(data.error || "Failed to generate");
+
+      setGeneratedImage(data.imageUrl);
       toast.success("Image generated successfully!");
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      toast.error("Failed to generate image. Please check your Gemini API key.");
+      toast.error(err.message || "Failed to generate image.");
     } finally {
       setIsGenerating(false);
     }
@@ -45,6 +71,7 @@ export default function ImageGen() {
 
   return (
     <div className="flex flex-col h-full w-full max-w-5xl mx-auto px-4 md:px-8 py-8 overflow-y-auto">
+      <PremiumModal isOpen={showPremiumModal} onOpenChange={setShowPremiumModal} />
       <div className="mb-8 flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-3">
