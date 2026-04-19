@@ -10,7 +10,8 @@ import {
   ChevronDown, Paperclip, Wand2, Brain, History, Copy,
   PanelLeftOpen, PanelLeftClose, FileJson, FileText, MicOff, Volume2, XCircle,
   Square, PlusCircle, Bold, Italic, List, Code2, Link as LinkIcon,
-  Quote, Eye, Info, Crown, Pencil, Layers, Library, Plus
+  Quote, Eye, Info, Crown, Pencil, Layers, Library, Plus, Trash2, 
+  FileDown
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "./ui/button.tsx";
@@ -91,6 +92,72 @@ export default function ChatInterface({ isSidebarOpen, setIsSidebarOpen }: ChatI
   const [chatTitle, setChatTitle] = useState("New Chat");
   const [showPreview, setShowPreview] = useState(false);
   const [isSaved, setIsSaved] = useState(true);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editingContent, setEditingContent] = useState("");
+
+  const exportChat = (format: 'txt' | 'json') => {
+    if (messages.length === 0) {
+      toast.error("No intelligence history to export");
+      return;
+    }
+
+    let content = "";
+    let fileName = `cortex-session-${chatTitle.toLowerCase().replace(/\s+/g, '-') || id}`;
+    let type = "";
+
+    if (format === 'json') {
+      content = JSON.stringify({
+        title: chatTitle,
+        id,
+        exportedAt: new Date().toISOString(),
+        messages: messages.map(m => ({ role: m.role, content: m.content }))
+      }, null, 2);
+      fileName += ".json";
+      type = "application/json";
+    } else {
+      content = `Cortex AI Synthesis Export\nSession: ${chatTitle || id}\nDate: ${new Date().toLocaleString()}\n\n`;
+      content += messages.map(m => `${m.role.toUpperCase()}: ${m.content}`).join("\n\n");
+      fileName += ".txt";
+      type = "text/plain";
+    }
+
+    const blob = new Blob([content], { type });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fileName;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success(`Session exported as ${format.toUpperCase()}`);
+  };
+
+  const deleteMessage = async (index: number) => {
+    if (!id) return;
+    const updatedMessages = messages.filter((_, i) => i !== index);
+    setMessages(updatedMessages);
+    try {
+      await api.patch(`chat/${id}`, { messages: updatedMessages });
+      toast.success("Memory purged");
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to purge memory");
+    }
+  };
+
+  const saveEditedMessage = async (index: number) => {
+    if (!id || !editingContent.trim()) return;
+    const updatedMessages = [...messages];
+    updatedMessages[index] = { ...updatedMessages[index], content: editingContent };
+    setMessages(updatedMessages);
+    setEditingIndex(null);
+    try {
+      await api.patch(`chat/${id}`, { messages: updatedMessages });
+      toast.success("Intelligence updated");
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to update intelligence");
+    }
+  };
   const [isSaving, setIsSaving] = useState(false);
   const [inputError, setInputError] = useState<string | null>(null);
   const [showPremiumModal, setShowPremiumModal] = useState(false);
@@ -339,7 +406,7 @@ export default function ChatInterface({ isSidebarOpen, setIsSidebarOpen }: ChatI
     }
   }, [input]);
 
-  const handleSubmit = async (e?: React.FormEvent, overrideInput?: string) => {
+  const handleSubmit = async (e?: React.FormEvent, overrideInput?: string, overrideHistory?: Message[]) => {
     e?.preventDefault();
     const finalInput = overrideInput || input;
     
@@ -369,12 +436,12 @@ export default function ChatInterface({ isSidebarOpen, setIsSidebarOpen }: ChatI
 
     if (!checkUsage('messages')) return;
 
+    const currentHistory = overrideHistory || messages;
     const userMessage: Message = { role: "user", content: processedInput };
     setUsage(prev => ({ ...prev, messages: prev.messages + 1 }));
-    const newMessages = [...messages, userMessage];
+    const newMessagesForAI = [...currentHistory, userMessage];
     
-    // For UI display, we show the raw input, not the processed one with prefixes
-    const displayMessages = [...messages, { role: "user", content: finalInput } as Message];
+    const displayMessages = [...currentHistory, { role: "user", content: finalInput } as Message];
     setMessages(displayMessages);
     
     setInput("");
@@ -408,12 +475,12 @@ export default function ChatInterface({ isSidebarOpen, setIsSidebarOpen }: ChatI
       abortControllerRef.current = new AbortController();
       
       // Primary Stream
-      const stream = streamChat(newMessages, selectedModel);
+      const stream = streamChat(newMessagesForAI, selectedModel);
       
       // Secondary Stream (if compare mode)
       const secondaryPromise = isCompareMode 
         ? (async () => {
-            const secondaryStream = streamChat(newMessages, comparisonModel);
+            const secondaryStream = streamChat(newMessagesForAI, comparisonModel);
             for await (const chunk of secondaryStream) {
               if (abortControllerRef.current?.signal.aborted) break;
               secondaryFullContent += chunk;
@@ -468,27 +535,6 @@ export default function ChatInterface({ isSidebarOpen, setIsSidebarOpen }: ChatI
       setIsTyping(false);
       toast.info("Generation stopped");
     }
-  };
-
-  const exportChat = (format: 'txt' | 'json') => {
-    let content = "";
-    let mimeType = "text/plain";
-    let fileName = `chat-export-${id || "new"}.${format}`;
-
-    if (format === 'json') {
-      content = JSON.stringify(messages, null, 2);
-      mimeType = "application/json";
-    } else {
-      content = messages.map(m => `${m.role.toUpperCase()}: ${m.content}`).join("\n\n");
-    }
-
-    const blob = new Blob([content], { type: mimeType });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = fileName;
-    a.click();
-    toast.success(`Chat exported as .${format}`);
   };
 
   const clearChat = async () => {
@@ -596,6 +642,32 @@ export default function ChatInterface({ isSidebarOpen, setIsSidebarOpen }: ChatI
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
+
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-6 rounded-md text-slate-500 hover:text-brand px-2 transition-colors">
+                      <FileDown size={10} />
+                      <span className="ml-1 text-[8px] font-black uppercase tracking-widest">Export</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-40 rounded-xl p-1 shadow-2xl border-slate-200 dark:border-white/5 dark:bg-slate-900 z-[100]">
+                    <div className="px-2 py-1 text-[8px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-widest">Select Format:</div>
+                    <DropdownMenuItem 
+                      onClick={() => exportChat('txt')}
+                      className="rounded-lg py-2 px-3 transition-all cursor-pointer font-bold text-xs hover:bg-slate-50 dark:hover:bg-white/5 flex items-center gap-2"
+                    >
+                      <FileText size={14} className="text-blue-500" />
+                      Text File (.txt)
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={() => exportChat('json')}
+                      className="rounded-lg py-2 px-3 transition-all cursor-pointer font-bold text-xs hover:bg-slate-50 dark:hover:bg-white/5 flex items-center gap-2"
+                    >
+                      <FileJson size={14} className="text-amber-500" />
+                      JSON Structure
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
               <AnimatePresence>
                 {isSaving && (
@@ -819,23 +891,59 @@ export default function ChatInterface({ isSidebarOpen, setIsSidebarOpen }: ChatI
                       "max-w-[85%] md:max-w-[75%] relative group/message transition-all",
                       m.role === "user" ? "chat-bubble-user" : "chat-bubble-ai"
                     )}>
+                      {editingIndex === i ? (
+                        <div className="flex flex-col gap-2 min-w-[200px] sm:min-w-[300px]">
+                          <textarea
+                            autoFocus
+                            value={editingContent}
+                            onChange={(e) => setEditingContent(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" && !e.shiftKey) {
+                                e.preventDefault();
+                                saveEditedMessage(i);
+                              }
+                              if (e.key === "Escape") setEditingIndex(null);
+                            }}
+                            className="w-full bg-white/10 dark:bg-black/20 text-white dark:text-slate-200 text-sm md:text-base p-3 rounded-2xl outline-none focus:ring-2 focus:ring-white/30 border-none resize-none min-h-[80px]"
+                          />
+                          <div className="flex justify-end gap-2">
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={() => setEditingIndex(null)}
+                              className="text-white/60 hover:text-white hover:bg-white/10 h-8 font-black uppercase tracking-widest text-[9px]"
+                            >
+                              Cancel
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              onClick={() => saveEditedMessage(i)}
+                              className="bg-white text-brand hover:bg-white/90 h-8 font-black uppercase tracking-widest text-[9px] px-4"
+                            >
+                              Save Synthesis
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className={cn(
+                          "prose prose-sm md:prose-base dark:prose-invert leading-relaxed",
+                          m.role === "user" ? "text-white selection:bg-white/20" : "text-slate-700 dark:text-slate-300 selection:bg-brand/10"
+                        )}>
+                          <ReactMarkdown components={MarkdownComponents} remarkPlugins={[remarkGfm]}>{m.content}</ReactMarkdown>
+                        </div>
+                      )}
+                      
                       <div className={cn(
-                        "prose prose-sm md:prose-base dark:prose-invert leading-relaxed",
-                        m.role === "user" ? "text-white selection:bg-white/20" : "text-slate-700 selection:bg-brand/10"
-                      )}>
-                        <ReactMarkdown components={MarkdownComponents} remarkPlugins={[remarkGfm]}>{m.content}</ReactMarkdown>
-                      </div>
-                      <div className={cn(
-                        "absolute top-0 flex gap-1 opacity-0 group-hover/message:opacity-100 transition-all duration-200",
+                        "absolute top-0 flex gap-1 opacity-0 group-hover/message:opacity-100 transition-all duration-200 z-20",
                         m.role === "user" ? "-left-20 flex-row-reverse" : "-right-24"
                       )}>
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 rounded-xl bg-white/80 backdrop-blur-sm shadow-sm border border-slate-100 text-slate-400 hover:text-brand hover:scale-110 transition-all"
+                          className="h-8 w-8 rounded-xl bg-white/80 dark:bg-slate-800/90 backdrop-blur-sm shadow-sm border border-slate-100 dark:border-white/5 text-slate-400 dark:text-slate-500 hover:text-brand hover:scale-110 transition-all"
                           onClick={() => {
                             navigator.clipboard.writeText(m.content);
-                            toast.success("Copied to clipboard");
+                            toast.success("Intelligence cloned to clipboard");
                           }}
                           title="Copy content"
                         >
@@ -844,44 +952,37 @@ export default function ChatInterface({ isSidebarOpen, setIsSidebarOpen }: ChatI
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 rounded-xl bg-white/80 backdrop-blur-sm shadow-sm border border-slate-100 text-slate-400 hover:text-red-500 hover:scale-110 transition-all"
-                          onClick={() => {
-                            setMessages(prev => prev.filter((_, idx) => idx !== i));
-                            toast.error("Message removed");
-                          }}
-                          title="Delete message"
+                          className="h-8 w-8 rounded-xl bg-white/80 dark:bg-slate-800/90 backdrop-blur-sm shadow-sm border border-slate-100 dark:border-white/5 text-slate-400 dark:text-slate-500 hover:text-red-500 hover:scale-110 transition-all"
+                          onClick={() => deleteMessage(i)}
+                          title="Purge message"
                         >
-                          <XCircle size={14} />
+                          <Trash2 size={14} />
                         </Button>
                         {m.role === "assistant" && (
                           <div className="flex items-center gap-1">
                             <button
                               className={cn(
-                                "h-8 w-8 rounded-xl bg-white/80 backdrop-blur-sm shadow-sm border border-slate-100 transition-all flex items-center justify-center",
-                                isSpeaking ? "text-brand animate-pulse bg-brand/5 border-brand/20 shadow-brand/10" : "text-slate-400 hover:text-brand hover:scale-110"
+                                "h-8 w-8 rounded-xl bg-white/80 dark:bg-slate-800/90 backdrop-blur-sm shadow-sm border border-slate-100 dark:border-white/5 transition-all flex items-center justify-center",
+                                isSpeaking ? "text-brand animate-pulse bg-brand/5 border-brand/20 shadow-brand/10" : "text-slate-400 dark:text-slate-500 hover:text-brand hover:scale-110"
                               )}
                               onClick={() => speakText(m.content)}
                             >
                               {isSpeaking ? <XCircle size={14} className="text-red-500" /> : <Volume2 size={14} />}
                             </button>
-                            {isSpeaking && (
-                              <div className="flex gap-0.5 px-2">
-                                <div className="w-0.5 h-3 bg-brand/40 animate-music-bar-1" />
-                                <div className="w-0.5 h-4 bg-brand/60 animate-music-bar-2" />
-                                <div className="w-0.5 h-2 bg-brand/80 animate-music-bar-3" />
-                              </div>
-                            )}
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8 rounded-xl bg-white/80 backdrop-blur-sm shadow-sm border border-slate-100 text-slate-400 hover:text-brand hover:scale-110 transition-all"
+                              className="h-8 w-8 rounded-xl bg-white/80 dark:bg-slate-800/90 backdrop-blur-sm shadow-sm border border-slate-100 dark:border-white/5 text-slate-400 dark:text-slate-500 hover:text-brand hover:scale-110 transition-all"
                               onClick={() => {
-                                const lastUserMessage = messages.filter(msg => msg.role === "user").pop();
+                                const lastUserMessage = messages.filter((msg, idx) => msg.role === "user" && idx <= i).pop();
                                 if (lastUserMessage) {
-                                  setMessages(prev => prev.slice(0, -2));
-                                  handleSubmit(undefined, lastUserMessage.content);
+                                  // Re-synthesize from this point
+                                  const historyUpToThisPoint = messages.slice(0, i);
+                                  setMessages(historyUpToThisPoint);
+                                  handleSubmit(undefined, lastUserMessage.content, historyUpToThisPoint);
                                 }
                               }}
+                              title="Re-synthesize from here"
                             >
                               <Wand2 size={14} />
                             </Button>
@@ -891,13 +992,12 @@ export default function ChatInterface({ isSidebarOpen, setIsSidebarOpen }: ChatI
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 rounded-xl bg-white/80 backdrop-blur-sm shadow-sm border border-slate-100 text-slate-400 hover:text-brand hover:scale-110 transition-all"
+                            className="h-8 w-8 rounded-xl bg-white/80 dark:bg-slate-800/90 backdrop-blur-sm shadow-sm border border-slate-100 dark:border-white/5 text-slate-400 dark:text-slate-500 hover:text-brand hover:scale-110 transition-all"
                             onClick={() => {
-                              setInput(m.content);
-                              textareaRef.current?.focus();
-                              toast.info("Message copied to input for editing");
+                              setEditingIndex(i);
+                              setEditingContent(m.content);
                             }}
-                            title="Edit Message"
+                            title="Edit Intelligence"
                           >
                             <Pencil size={14} />
                           </Button>

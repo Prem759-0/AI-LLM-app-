@@ -30,9 +30,10 @@ router.post("/create-checkout-session", ClerkExpressRequireAuth(), async (req: a
 
   const stripe = getStripe();
   if (!stripe) {
+    console.error("[Billing] Stripe NOT initialized - KEY MISSING");
     return res.status(500).json({ 
       error: "Payment configuration error", 
-      details: "The server is not configured for payments. Please provide STRIPE_SECRET_KEY." 
+      details: "The server is not configured for payments. Please provide STRIPE_SECRET_KEY in environment variables." 
     });
   }
 
@@ -52,6 +53,7 @@ router.post("/create-checkout-session", ClerkExpressRequireAuth(), async (req: a
       await user.save();
     }
 
+    console.log(`[Billing] Constructing Stripe session for ${userId} (${user.email})`);
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       line_items: [
@@ -71,7 +73,7 @@ router.post("/create-checkout-session", ClerkExpressRequireAuth(), async (req: a
       mode: "subscription",
       success_url: `${req.headers.origin}/chat?success=true`,
       cancel_url: `${req.headers.origin}/billing?canceled=true`,
-      customer_email: user.email === "syncing..." ? undefined : user.email,
+      customer_email: (user.email && user.email !== "syncing...") ? user.email : undefined,
       metadata: {
         clerkId: userId,
         plan: selectedPlan.name

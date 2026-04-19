@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { Crown, CheckCircle2 } from "lucide-react";
 import { Button } from "./ui/button.tsx";
 import { 
-  Dialog, DialogContent 
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription 
 } from "./ui/dialog.tsx";
 
 import api from "../lib/api.ts";
@@ -58,11 +58,17 @@ export default function PremiumModal({ isOpen, onOpenChange }: PremiumModalProps
           <div className="absolute bottom-0 left-0 w-48 h-48 bg-purple-600/10 blur-[80px] -ml-24 -mb-24" />
           
           <div className="relative z-10">
-            <div className="w-16 h-16 bg-gradient-to-br from-brand to-purple-600 rounded-2xl flex items-center justify-center mb-6 shadow-2xl mx-auto ring-4 ring-brand/20">
-              <Crown size={32} />
-            </div>
-            <h2 className="text-4xl font-black tracking-tighter mb-2 uppercase italic leading-none">Elevate Your Intelligence</h2>
-            <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Access the full Cortex Neural Lattice</p>
+            <DialogHeader className="p-0 space-y-0">
+              <div className="w-16 h-16 bg-gradient-to-br from-brand to-purple-600 rounded-2xl flex items-center justify-center mb-6 shadow-2xl mx-auto ring-4 ring-brand/20">
+                <Crown size={32} />
+              </div>
+              <DialogTitle className="text-4xl font-black tracking-tighter mb-2 uppercase italic leading-none">
+                Elevate Your Intelligence
+              </DialogTitle>
+              <DialogDescription className="text-slate-400 font-bold uppercase tracking-widest text-[10px] mx-auto">
+                Access the full Cortex Neural Lattice
+              </DialogDescription>
+            </DialogHeader>
           </div>
         </div>
 
