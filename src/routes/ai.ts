@@ -67,7 +67,7 @@ router.post("/", ClerkExpressRequireAuth(), async (req: any, res) => {
   }
 
   // Update usage
-  await User.findOneAndUpdate({ clerkId: userId }, { $inc: { "usage.messages": 1 } });
+  await User.findOneAndUpdate({ clerkId: userId }, { $inc: { "usage.messages": 1 } }, { new: true });
   
   // Use OpenRouter Exclusively as requested
   try {

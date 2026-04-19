@@ -52,7 +52,7 @@ router.post("/", ClerkExpressRequireAuth(), async (req: any, res) => {
     await file.save();
     
     // Update usage stats for quick lookups
-    await User.findOneAndUpdate({ clerkId: userId }, { $set: { "usage.files": count + 1 } });
+    await User.findOneAndUpdate({ clerkId: userId }, { $set: { "usage.files": count + 1 } }, { new: true });
     
     res.json(file);
   } catch (err: any) {
@@ -76,7 +76,7 @@ router.delete("/:id", ClerkExpressRequireAuth(), async (req: any, res) => {
     }
 
     const count = await File.countDocuments({ userId });
-    await User.findOneAndUpdate({ clerkId: userId }, { $set: { "usage.files": count } });
+    await User.findOneAndUpdate({ clerkId: userId }, { $set: { "usage.files": count } }, { new: true });
     
     res.json({ success: true });
   } catch (err: any) {

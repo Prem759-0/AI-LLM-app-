@@ -1,6 +1,17 @@
 import mongoose from "mongoose";
 
-const FileSchema = new mongoose.Schema({
+export interface IFile extends mongoose.Document {
+  userId: string;
+  name: string;
+  size: string;
+  type: string;
+  content?: string;
+  url?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const FileSchema = new mongoose.Schema<IFile>({
   userId: { type: String, required: true },
   name: { type: String, required: true },
   size: { type: String, required: true },
@@ -9,4 +20,4 @@ const FileSchema = new mongoose.Schema({
   url: { type: String }, // Placeholder for external storage if needed later
 }, { timestamps: true });
 
-export const File = mongoose.models.File || mongoose.model("File", FileSchema);
+export const File = mongoose.models.File || mongoose.model<IFile>("File", FileSchema);

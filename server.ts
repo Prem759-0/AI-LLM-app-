@@ -66,7 +66,7 @@ app.post("/api/billing/webhook", express.raw({ type: "application/json" }), asyn
             subscriptionId: session.subscription,
             email: session.customer_details?.email 
           },
-          { upsert: true }
+          { upsert: true, new: true }
         );
         break;
       }
@@ -74,7 +74,8 @@ app.post("/api/billing/webhook", express.raw({ type: "application/json" }), asyn
         const sub = event.data.object as any;
         await User.findOneAndUpdate(
           { subscriptionId: sub.id },
-          { isPro: false }
+          { isPro: false },
+          { new: true }
         );
         break;
       }

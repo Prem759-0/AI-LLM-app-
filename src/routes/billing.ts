@@ -138,10 +138,11 @@ router.get("/status", ClerkExpressRequireAuth(), async (req: any, res) => {
 
     res.json({ isPro: user.isPro || false, usage: user.usage });
   } catch (err: any) {
-    console.error("[Cortex Billing] Status Error:", err.message);
+    console.error("[Cortex Billing] Status Error:", err);
     res.status(500).json({ 
       error: "Unable to retrieve neural bandwidth status", 
-      details: err.message 
+      details: err.message,
+      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
     });
   }
 });
