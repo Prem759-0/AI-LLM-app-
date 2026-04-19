@@ -38,9 +38,9 @@ router.post("/create-checkout-session", ClerkExpressRequireAuth(), async (req: a
   }
 
   const plans = {
-    synapse: { name: "Synapse", price: 2400 },
-    nexus: { name: "Nexus", price: 9900 },
-    pro: { name: "Synapse", price: 2400 } // fallback
+    synapse: { id: "synapse", name: "Synapse", price: 2400 },
+    nexus: { id: "nexus", name: "Nexus", price: 9900 },
+    pro: { id: "synapse", name: "Synapse", price: 2400 } // fallback
   };
 
   const selectedPlan = plans[plan as keyof typeof plans] || plans.synapse;
@@ -54,6 +54,8 @@ router.post("/create-checkout-session", ClerkExpressRequireAuth(), async (req: a
     }
 
     console.log(`[Billing] Constructing Stripe session for ${userId} (${user.email})`);
+    const origin = req.headers.origin || process.env.VITE_APP_URL || "http://localhost:3000";
+    
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       line_items: [
@@ -71,12 +73,12 @@ router.post("/create-checkout-session", ClerkExpressRequireAuth(), async (req: a
         },
       ],
       mode: "subscription",
-      success_url: `${req.headers.origin}/chat?success=true`,
-      cancel_url: `${req.headers.origin}/billing?canceled=true`,
+      success_url: `${origin}/chat?success=true`,
+      cancel_url: `${origin}/billing?canceled=true`,
       customer_email: (user.email && user.email !== "syncing...") ? user.email : undefined,
       metadata: {
         clerkId: userId,
-        plan: selectedPlan.name
+        plan: selectedPlan.id
       },
       allow_promotion_codes: true,
       billing_address_collection: 'auto',
@@ -136,8 +138,11 @@ router.get("/status", ClerkExpressRequireAuth(), async (req: any, res) => {
 
     res.json({ isPro: user.isPro || false, usage: user.usage });
   } catch (err: any) {
-    console.error("[Billing Status Error]", err.message);
-    res.status(500).json({ error: "Unable to retrieve neural bandwidth status" });
+    console.error("[Cortex Billing] Status Error:", err.message);
+    res.status(500).json({ 
+      error: "Unable to retrieve neural bandwidth status", 
+      details: err.message 
+    });
   }
 });
 

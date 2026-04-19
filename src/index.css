@@ -68,23 +68,23 @@
 
 @layer utilities {
   .glass {
-    @apply bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white/40 dark:border-white/5 shadow-xl;
+    @apply bg-white/70 dark:bg-[#1a1c2e]/70 backdrop-blur-xl border border-white/40 dark:border-white/10 shadow-xl;
   }
   
   .glass-dark {
-    @apply bg-slate-900/70 dark:bg-black/70 backdrop-blur-xl border border-slate-800/20 dark:border-white/5 shadow-xl;
+    @apply bg-slate-900/70 dark:bg-[#0b0c14]/80 backdrop-blur-xl border border-slate-800/20 dark:border-white/10 shadow-xl;
   }
   
   .sidebar-glass {
-    @apply bg-slate-50/80 dark:bg-slate-900/80 backdrop-blur-xl border-r border-slate-200/50 dark:border-white/5;
+    @apply bg-slate-50/80 dark:bg-[#0d0e16]/95 backdrop-blur-xl border-r border-slate-200/50 dark:border-white/5;
   }
   
   .chat-bubble-user {
-    @apply bg-brand text-white rounded-[1.8rem] rounded-tr-none px-6 py-4 shadow-lg shadow-brand/20 border border-brand-light/20 font-medium;
+    @apply bg-brand text-white rounded-[1.8rem] rounded-tr-none px-6 py-4 shadow-lg shadow-brand/20 border border-brand-light/20 font-medium selection:bg-white/20;
   }
   
   .chat-bubble-ai {
-    @apply bg-white dark:bg-slate-900/80 border border-slate-100 dark:border-white/5 rounded-[1.8rem] rounded-tl-none px-6 py-4 shadow-sm hover:shadow-md transition-all duration-300;
+    @apply bg-white/90 dark:bg-[#1a1c2e]/80 border border-slate-100 dark:border-white/10 rounded-[1.8rem] rounded-tl-none px-6 py-4 shadow-sm hover:shadow-md transition-all duration-300;
   }
   
   .brand-gradient {

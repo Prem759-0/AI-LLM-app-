@@ -95,6 +95,20 @@ export default function ChatInterface({ isSidebarOpen, setIsSidebarOpen }: ChatI
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editingContent, setEditingContent] = useState("");
   const [deletingMessageIndex, setDeletingMessageIndex] = useState<number | null>(null);
+  const [showPurgeConfirm, setShowPurgeConfirm] = useState(false);
+
+  const confirmPurge = (index: number) => {
+    setDeletingMessageIndex(index);
+    setShowPurgeConfirm(true);
+  };
+
+  const handleConfirmedPurge = () => {
+    if (deletingMessageIndex !== null) {
+      deleteMessage(deletingMessageIndex);
+      setDeletingMessageIndex(null);
+      setShowPurgeConfirm(false);
+    }
+  };
 
   const exportChat = (format: 'txt' | 'json') => {
     if (messages.length === 0) {
@@ -558,7 +572,6 @@ export default function ChatInterface({ isSidebarOpen, setIsSidebarOpen }: ChatI
 
   return (
     <div className="flex flex-col h-full bg-[#fcfcff] dark:bg-[#0b0c14] relative overflow-hidden transition-colors duration-500">
-      <PremiumModal isOpen={showPremiumModal} onOpenChange={setShowPremiumModal} />
       {/* Header */}
       <header className="h-16 flex items-center justify-between border-b border-slate-200/50 dark:border-white/5 mb-2 shrink-0 px-4 md:px-8 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md z-30 sticky top-0 transition-colors">
         <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -957,32 +970,11 @@ export default function ChatInterface({ isSidebarOpen, setIsSidebarOpen }: ChatI
                           <Button
                             variant="ghost"
                             size="icon"
-                            className={cn(
-                              "h-8 w-8 rounded-xl bg-white/80 dark:bg-slate-800/90 backdrop-blur-sm shadow-sm border border-slate-100 dark:border-white/5 transition-all",
-                              deletingMessageIndex === i 
-                                ? "bg-red-500 text-white hover:bg-red-600 scale-110 w-auto px-3" 
-                                : "text-slate-400 dark:text-slate-500 hover:text-red-500 hover:scale-110"
-                            )}
-                            onClick={() => {
-                              if (deletingMessageIndex === i) {
-                                deleteMessage(i);
-                                setDeletingMessageIndex(null);
-                              } else {
-                                setDeletingMessageIndex(i);
-                                // Auto-reset after 3 seconds
-                                setTimeout(() => setDeletingMessageIndex(null), 3000);
-                              }
-                            }}
-                            title={deletingMessageIndex === i ? "Click to confirm deletion" : "Purge message"}
+                            className="h-8 w-8 rounded-xl bg-white/80 dark:bg-slate-800/90 backdrop-blur-sm shadow-sm border border-slate-100 dark:border-white/5 text-slate-400 dark:text-slate-500 hover:text-red-500 hover:scale-110 transition-all"
+                            onClick={() => confirmPurge(i)}
+                            title="Purge message"
                           >
-                            {deletingMessageIndex === i ? (
-                              <div className="flex items-center gap-1.5 whitespace-nowrap">
-                                <Trash2 size={12} />
-                                <span className="text-[10px] font-black uppercase tracking-tighter">Confirm Purge</span>
-                              </div>
-                            ) : (
-                              <Trash2 size={14} />
-                            )}
+                            <Trash2 size={14} />
                           </Button>
                         </div>
                         {m.role === "assistant" && (
@@ -1543,6 +1535,28 @@ export default function ChatInterface({ isSidebarOpen, setIsSidebarOpen }: ChatI
           </div>
         </DialogContent>
       </Dialog>
+      <Dialog open={showPurgeConfirm} onOpenChange={setShowPurgeConfirm}>
+        <DialogContent className="sm:max-w-md rounded-3xl p-6 border-none shadow-2xl dark:bg-[#0b0c14] dark:border dark:border-white/10">
+          <DialogHeader>
+            <div className="w-12 h-12 bg-red-500/10 text-red-500 rounded-2xl flex items-center justify-center mb-4 mx-auto">
+              <XCircle size={28} />
+            </div>
+            <DialogTitle className="text-2xl font-black text-center text-slate-900 dark:text-white uppercase italic tracking-tighter">Confirm Neural Purge</DialogTitle>
+            <DialogDescription className="text-center text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
+              Are you sure you want to purge this specific intelligence record from the neural stream? This action is irreversible.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col sm:flex-row gap-3 mt-6">
+            <Button variant="ghost" onClick={() => setShowPurgeConfirm(false)} className="flex-1 rounded-2xl h-12 font-black uppercase tracking-widest text-[10px] text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5">
+              Abort Purge
+            </Button>
+            <Button onClick={handleConfirmedPurge} className="flex-1 bg-red-500 hover:bg-red-600 text-white rounded-2xl h-12 font-black uppercase tracking-widest text-[10px] shadow-lg shadow-red-500/20">
+              Purge Memory
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      
       {/* Premium Modal */}
       <PremiumModal isOpen={showPremiumModal} onOpenChange={setShowPremiumModal} />
     </div>

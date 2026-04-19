@@ -48,8 +48,13 @@ router.post("/reorder", ClerkExpressRequireAuth(), async (req: any, res) => {
 router.post("/", ClerkExpressRequireAuth(), async (req: any, res) => {
   try {
     const { userId } = req.auth;
-    console.log(`[Chat] Generating new session for ${userId}`);
-    const chat = new Chat({ userId, messages: [] });
+    const { title, messages } = req.body;
+    console.log(`[Chat] Generating new session for ${userId}. Title: ${title || 'default'}`);
+    const chat = new Chat({ 
+      userId, 
+      title: title || "New Chat", 
+      messages: messages || [] 
+    });
     await chat.save();
     res.json(chat);
   } catch (err: any) {
