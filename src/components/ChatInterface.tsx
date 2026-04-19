@@ -94,6 +94,7 @@ export default function ChatInterface({ isSidebarOpen, setIsSidebarOpen }: ChatI
   const [isSaved, setIsSaved] = useState(true);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editingContent, setEditingContent] = useState("");
+  const [deletingMessageIndex, setDeletingMessageIndex] = useState<number | null>(null);
 
   const exportChat = (format: 'txt' | 'json') => {
     if (messages.length === 0) {
@@ -713,6 +714,9 @@ export default function ChatInterface({ isSidebarOpen, setIsSidebarOpen }: ChatI
                     </div>
                     System Settings
                   </DialogTitle>
+                  <DialogDescription className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-2">
+                    Configure your neural lattice preferences and visual interface.
+                  </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-10">
                   <section>
@@ -949,15 +953,38 @@ export default function ChatInterface({ isSidebarOpen, setIsSidebarOpen }: ChatI
                         >
                           <Copy size={14} />
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 rounded-xl bg-white/80 dark:bg-slate-800/90 backdrop-blur-sm shadow-sm border border-slate-100 dark:border-white/5 text-slate-400 dark:text-slate-500 hover:text-red-500 hover:scale-110 transition-all"
-                          onClick={() => deleteMessage(i)}
-                          title="Purge message"
-                        >
-                          <Trash2 size={14} />
-                        </Button>
+                        <div className="relative">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className={cn(
+                              "h-8 w-8 rounded-xl bg-white/80 dark:bg-slate-800/90 backdrop-blur-sm shadow-sm border border-slate-100 dark:border-white/5 transition-all",
+                              deletingMessageIndex === i 
+                                ? "bg-red-500 text-white hover:bg-red-600 scale-110 w-auto px-3" 
+                                : "text-slate-400 dark:text-slate-500 hover:text-red-500 hover:scale-110"
+                            )}
+                            onClick={() => {
+                              if (deletingMessageIndex === i) {
+                                deleteMessage(i);
+                                setDeletingMessageIndex(null);
+                              } else {
+                                setDeletingMessageIndex(i);
+                                // Auto-reset after 3 seconds
+                                setTimeout(() => setDeletingMessageIndex(null), 3000);
+                              }
+                            }}
+                            title={deletingMessageIndex === i ? "Click to confirm deletion" : "Purge message"}
+                          >
+                            {deletingMessageIndex === i ? (
+                              <div className="flex items-center gap-1.5 whitespace-nowrap">
+                                <Trash2 size={12} />
+                                <span className="text-[10px] font-black uppercase tracking-tighter">Confirm Purge</span>
+                              </div>
+                            ) : (
+                              <Trash2 size={14} />
+                            )}
+                          </Button>
+                        </div>
                         {m.role === "assistant" && (
                           <div className="flex items-center gap-1">
                             <button

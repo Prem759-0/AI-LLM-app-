@@ -21,11 +21,15 @@ if (!process.env.CLERK_PUBLISHABLE_KEY && process.env.VITE_CLERK_PUBLISHABLE_KEY
 }
 
 if (!process.env.CLERK_SECRET_KEY) {
-  console.warn("WARNING: CLERK_SECRET_KEY is missing! Backend authentication WILL fail.");
+  console.warn("WARNING: CLERK_SECRET_KEY is missing! Neural synthesis authentication will fail.");
 }
 
-if (!process.env.VITE_CLERK_PUBLISHABLE_KEY && !process.env.CLERK_PUBLISHABLE_KEY) {
-  console.warn("WARNING: CLERK_PUBLISHABLE_KEY is missing! Backend authentication WILL fail.");
+if (!process.env.STRIPE_SECRET_KEY) {
+  console.warn("WARNING: STRIPE_SECRET_KEY is missing! Financial checkout protocols are disabled.");
+}
+
+if (!process.env.MONGODB_URI) {
+  console.error("CRITICAL: MONGODB_URI is missing! The neural database cannot be hydrated.");
 }
 
 const __filename = fileURLToPath(import.meta.url);

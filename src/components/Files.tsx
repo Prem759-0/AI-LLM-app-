@@ -14,6 +14,7 @@ export default function Files() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [showPremiumModal, setShowPremiumModal] = useState(false);
+  const [purgingFileId, setPurgingFileId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchFiles();
@@ -22,9 +23,9 @@ export default function Files() {
   const fetchFiles = async () => {
     try {
       const res = await api.get("files");
-      setFiles(res.data);
+      setFiles(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
-      toast.error("Failed to load your neural assets.");
+      toast.error("Failed to load your neural assets. Database connection may be initializing.");
     } finally {
       setLoading(false);
     }
@@ -35,8 +36,9 @@ export default function Files() {
       await api.delete(`files/${id}`);
       setFiles(prev => prev.filter(f => f._id !== id));
       toast.success("Asset removed from library");
+      setPurgingFileId(null);
     } catch (err) {
-      toast.error("Failed to delete asset.");
+      toast.error("Failed to delete asset. Retrieval failure.");
     }
   };
 
@@ -164,7 +166,34 @@ export default function Files() {
                 <div className="md:col-span-3 text-[10px] md:text-xs text-slate-500 font-black">{new Date(f.createdAt).toLocaleDateString()}</div>
                 <div className="md:col-span-1 flex justify-end gap-1">
                   <Button variant="ghost" size="icon" className="h-8 w-8 md:h-10 md:w-10 text-slate-400 hover:text-brand rounded-xl md:opacity-0 group-hover:opacity-100 transition-all cursor-pointer"><Download size={16} /></Button>
-                  <Button onClick={(e) => { e.stopPropagation(); deleteFile(f._id); }} variant="ghost" size="icon" className="h-8 w-8 md:h-10 md:w-10 text-slate-400 hover:text-red-500 rounded-xl md:opacity-0 group-hover:opacity-100 transition-all cursor-pointer"><Trash2 size={16} /></Button>
+                  <Button 
+                    onClick={(e) => { 
+                      e.stopPropagation(); 
+                      if (purgingFileId === f._id) {
+                        deleteFile(f._id);
+                      } else {
+                        setPurgingFileId(f._id);
+                        setTimeout(() => setPurgingFileId(null), 3000);
+                      }
+                    }} 
+                    variant="ghost" 
+                    size="icon" 
+                    className={cn(
+                      "h-8 w-8 md:h-10 md:w-10 rounded-xl transition-all cursor-pointer md:opacity-0 group-hover:opacity-100",
+                      purgingFileId === f._id 
+                        ? "bg-red-500 text-white hover:bg-red-600 scale-110 w-auto px-3 opacity-100" 
+                        : "text-slate-400 hover:text-red-500"
+                    )}
+                  >
+                    {purgingFileId === f._id ? (
+                      <div className="flex items-center gap-1.5 whitespace-nowrap">
+                        <Trash2 size={14} />
+                        <span className="text-[10px] font-black uppercase">Confirm</span>
+                      </div>
+                    ) : (
+                      <Trash2 size={16} />
+                    )}
+                  </Button>
                 </div>
               </div>
             </motion.div>

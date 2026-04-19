@@ -1,4 +1,5 @@
 import express from "express";
+import mongoose from "mongoose";
 import { ClerkExpressRequireAuth } from "@clerk/clerk-sdk-node";
 import { Chat } from "../models/Chat.ts";
 
@@ -60,11 +61,15 @@ router.post("/", ClerkExpressRequireAuth(), async (req: any, res) => {
 router.get("/:id", ClerkExpressRequireAuth(), async (req: any, res) => {
   try {
     const { userId } = req.auth;
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ error: "Invalid neural ID format" });
+    }
     const chat = await Chat.findOne({ _id: req.params.id, userId });
     if (!chat) return res.status(404).json({ error: "Chat not found" });
     res.json(chat);
-  } catch (err) {
-    res.status(500).json({ error: "Server error" });
+  } catch (err: any) {
+    console.error("[Chat Detail Error]", err.message);
+    res.status(500).json({ error: "Neural retrieval failure", details: err.message });
   }
 });
 
@@ -73,6 +78,10 @@ router.patch("/:id", ClerkExpressRequireAuth(), async (req: any, res) => {
     const { userId } = req.auth;
     const { title, messages } = req.body;
     
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ error: "Invalid session anchor" });
+    }
+
     console.log(`[Chat] Patching chat ${req.params.id} for user ${userId}. Keys present:`, Object.keys(req.body));
 
     const update: any = { updatedAt: new Date() };
@@ -100,10 +109,14 @@ router.patch("/:id", ClerkExpressRequireAuth(), async (req: any, res) => {
 router.delete("/:id", ClerkExpressRequireAuth(), async (req: any, res) => {
   try {
     const { userId } = req.auth;
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ error: "Invalid delete target" });
+    }
     await Chat.deleteOne({ _id: req.params.id, userId });
     res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ error: "Server error" });
+  } catch (err: any) {
+    console.error("[Chat Delete Error]", err.message);
+    res.status(500).json({ error: "Purge failed", details: err.message });
   }
 });
 

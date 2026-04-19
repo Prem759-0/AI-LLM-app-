@@ -9,4 +9,4 @@ const FileSchema = new mongoose.Schema({
   url: { type: String }, // Placeholder for external storage if needed later
 }, { timestamps: true });
 
-export const File = mongoose.model("File", FileSchema);
+export const File = mongoose.models.File || mongoose.model("File", FileSchema);

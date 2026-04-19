@@ -105,10 +105,17 @@ router.get("/status", ClerkExpressRequireAuth(), async (req: any, res) => {
     
     // If user not in DB yet, return basic free tier
     if (!user) {
+      console.log(`[Billing] User ${userId} not in DB, providing default bandwidth tier.`);
       return res.json({ 
         isPro: false, 
         usage: { messages: 0, images: 0, files: 0, lastReset: new Date() } 
       });
+    }
+
+    if (!user.usage) {
+      console.warn(`[Billing] User ${userId} record malformed: missing usage block. Self-healing...`);
+      user.usage = { messages: 0, images: 0, files: 0, lastReset: new Date() };
+      await user.save();
     }
 
     // Daily Usage Reset Protocol
