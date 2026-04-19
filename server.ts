@@ -10,6 +10,7 @@ import { ClerkExpressWithAuth } from "@clerk/clerk-sdk-node";
 import chatRoutes from "./src/routes/chat.ts";
 import aiRoutes from "./src/routes/ai.ts";
 import billingRoutes from "./src/routes/billing.ts";
+import fileRoutes from "./src/routes/files.ts";
 
 dotenv.config();
 
@@ -166,6 +167,7 @@ app.get("/api/health", (req, res) => {
 app.use("/api/chat", chatRoutes);
 app.use("/api/ai", aiRoutes);
 app.use("/api/billing", billingRoutes);
+app.use("/api/files", fileRoutes);
 
 // Catch unmatched API routes
 app.all("/api/*", (req, res) => {

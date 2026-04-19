@@ -10,6 +10,7 @@ const FREE_MESSAGE_LIMIT = 15;
 const OPENROUTER_MODELS = {
   text: "google/gemma-2-9b-it:free",
   code: "qwen/qwen-2.5-coder-32b-instruct:free",
+  thinking: "meta-llama/llama-3.2-11b-vision-instruct:free", // High quality free thinking/vision
   roleplay: "gryphe/mythomax-l2-13b:free",
   tech: "nvidia/llama-3.1-nemotron-70b-instruct:free",
   translate: "google/gemma-2-9b-it:free",

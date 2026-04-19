@@ -127,8 +127,8 @@ export default function Billing() {
         </section>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <section className="glass p-8 rounded-[2.5rem] border-white/50 shadow-xl">
-            <h3 className="text-xl font-black text-slate-900 mb-6 flex items-center gap-3">
+          <section className="glass dark:bg-slate-900/50 p-8 rounded-[2.5rem] border-white/50 dark:border-white/5 shadow-xl transition-colors">
+            <h3 className="text-xl font-black text-slate-900 dark:text-white mb-6 flex items-center gap-3 italic tracking-tighter uppercase">
               <Star size={20} className="text-amber-500" />
               Pro Features
             </h3>
@@ -140,7 +140,7 @@ export default function Billing() {
                 "Early access to new features",
                 "Priority support"
               ].map((f) => (
-                <li key={f} className="flex items-center gap-3 text-sm font-bold text-slate-600">
+                <li key={f} className="flex items-center gap-3 text-sm font-bold text-slate-600 dark:text-slate-400">
                   <CheckCircle2 size={16} className="text-emerald-500" />
                   {f}
                 </li>
@@ -148,27 +148,27 @@ export default function Billing() {
             </ul>
           </section>
 
-          <section className="glass p-8 rounded-[2.5rem] border-white/50 shadow-xl">
-            <h3 className="text-xl font-black text-slate-900 mb-6 flex items-center gap-3">
+          <section className="glass dark:bg-slate-900/50 p-8 rounded-[2.5rem] border-white/50 dark:border-white/5 shadow-xl transition-colors">
+            <h3 className="text-xl font-black text-slate-900 dark:text-white mb-6 flex items-center gap-3 italic tracking-tighter uppercase">
               <Shield size={20} className="text-brand" />
               Payment Method
             </h3>
-            <div className="p-6 rounded-3xl bg-slate-50 border border-slate-100 flex items-center justify-between">
+            <div className="p-6 rounded-3xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 flex items-center justify-between transition-colors">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-8 bg-white rounded-lg border border-slate-200 flex items-center justify-center">
-                  <div className="w-6 h-4 bg-slate-200 rounded-sm" />
+                <div className="w-12 h-8 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-white/10 flex items-center justify-center">
+                  <div className="w-6 h-4 bg-slate-200 dark:bg-slate-700 rounded-sm" />
                 </div>
                 <div>
-                  <p className="text-sm font-black text-slate-800">•••• 4242</p>
-                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Expires 12/28</p>
+                  <p className="text-sm font-black text-slate-800 dark:text-slate-200 tracking-tight">•••• 4242</p>
+                  <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em]">Expires 12/28</p>
                 </div>
               </div>
-              <Button variant="ghost" size="icon" className="text-slate-400 hover:text-brand">
+              <Button variant="ghost" size="icon" className="text-slate-400 hover:text-brand transition-colors">
                 <History size={18} />
               </Button>
             </div>
-            <Button variant="outline" className="w-full mt-6 rounded-2xl h-12 border-slate-200 font-bold text-slate-600">
-              Update Payment Method
+            <Button variant="outline" className="w-full mt-6 rounded-2xl h-12 border-slate-200 dark:border-white/10 font-black text-[10px] uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5 transition-all">
+              Update Method
             </Button>
           </section>
         </div>

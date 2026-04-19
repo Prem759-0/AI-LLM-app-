@@ -10,7 +10,7 @@ import {
   ChevronDown, Paperclip, Wand2, Brain, History, Copy,
   PanelLeftOpen, PanelLeftClose, FileJson, FileText, MicOff, Volume2, XCircle,
   Square, PlusCircle, Bold, Italic, List, Code2, Link as LinkIcon,
-  Quote, Eye, Info, Crown, Pencil, Layers
+  Quote, Eye, Info, Crown, Pencil, Layers, Library, Plus
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "./ui/button.tsx";
@@ -21,7 +21,7 @@ import {
   DropdownMenuTrigger 
 } from "./ui/dropdown-menu.tsx";
 import { 
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger 
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription 
 } from "./ui/dialog.tsx";
 import { useAuth } from "../App.tsx";
 import api from "../lib/api.ts";
@@ -78,7 +78,15 @@ export default function ChatInterface({ isSidebarOpen, setIsSidebarOpen }: ChatI
   const [isTyping, setIsTyping] = useState(false);
   const [streamingContent, setStreamingContent] = useState("");
   const [secondaryStreamingContent, setSecondaryStreamingContent] = useState("");
-  const [attachedFile, setAttachedFile] = useState<{ name: string; content: string; type?: string; preview?: string } | null>(null);
+  const [attachedFile, setAttachedFile] = useState<{ id?: string; name: string; content: string; type?: string; preview?: string } | null>(null);
+  const [showLibrary, setShowLibrary] = useState(false);
+  const [libraryFiles, setLibraryFiles] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (showLibrary) {
+      api.get("files").then(res => setLibraryFiles(res.data)).catch(() => toast.error("Failed to load library"));
+    }
+  }, [showLibrary]);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [chatTitle, setChatTitle] = useState("New Chat");
   const [showPreview, setShowPreview] = useState(false);
@@ -206,10 +214,10 @@ export default function ChatInterface({ isSidebarOpen, setIsSidebarOpen }: ChatI
   };
 
   const modelOptions = [
-    { id: "text", name: "Gemini Flash", desc: "Fast & efficient for daily tasks", icon: Sparkles },
-    { id: "thinking", name: "Gemini Thinking", desc: "Deep reasoning & complex logic", icon: Brain },
-    { id: "code", name: "Gemini Pro Code", desc: "Specialized in software development", icon: BrainCircuit },
-    { id: "tech", name: "Gemini Pro Tech", desc: "Technical analysis & documentation", icon: Zap },
+    { id: "text", name: "Cortex Flash", desc: "Fast & efficient for daily synthesis", icon: Sparkles },
+    { id: "thinking", name: "Cortex Thinking", desc: "Deep reasoning & complex visual logic", icon: Brain },
+    { id: "code", name: "Cortex Coder", desc: "Advanced engineering & software logic", icon: BrainCircuit },
+    { id: "tech", name: "Cortex Architect", desc: "Deep technical analysis & documentation", icon: Zap },
   ];
 
   useEffect(() => {
@@ -606,23 +614,25 @@ export default function ChatInterface({ isSidebarOpen, setIsSidebarOpen }: ChatI
           </div>
         </div>
 
-          <div className="flex items-center gap-2 ml-4 shrink-0">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={() => navigate("/chat")}
-              className="h-10 w-10 text-slate-500 hover:text-brand rounded-xl border-2 border-slate-100 hidden sm:flex"
-              title="New Chat"
-            >
-              <PlusCircle size={20} />
-            </Button>
-            <Dialog>
-            <DialogTrigger render={
-              <Button variant="ghost" size="icon" className="h-10 w-10 text-slate-500 hover:text-brand rounded-xl border-2 border-slate-100 sm:flex hidden">
-                <Settings size={20} />
-              </Button>
-            } />
-            <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto rounded-[2rem] p-0 border-none shadow-2xl">
+        <div className="flex items-center gap-2 ml-4 shrink-0">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => navigate("/chat")}
+            className="h-10 w-10 text-slate-500 dark:text-slate-400 hover:text-brand dark:hover:text-brand rounded-xl border-2 border-slate-100 dark:border-white/5 hidden sm:flex transition-colors"
+            title="New Chat"
+          >
+            <PlusCircle size={20} />
+          </Button>
+          <Dialog>
+            <DialogTrigger 
+              render={
+                <Button variant="ghost" size="icon" className="h-10 w-10 text-slate-500 dark:text-slate-400 hover:text-brand dark:hover:text-brand rounded-xl border-2 border-slate-100 dark:border-white/5 sm:flex hidden transition-colors">
+                  <Settings size={20} />
+                </Button>
+              } 
+            />
+            <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto rounded-[2rem] p-0 border-none shadow-2xl dark:bg-slate-900 transition-colors">
               <div className="p-8">
                 <DialogHeader className="mb-8">
                   <DialogTitle className="text-3xl font-black text-slate-900 dark:text-white flex items-center gap-4 tracking-tighter italic uppercase">
@@ -682,7 +692,7 @@ export default function ChatInterface({ isSidebarOpen, setIsSidebarOpen }: ChatI
               <Tooltip>
                 <TooltipTrigger asChild>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="hidden sm:flex rounded-xl gap-2 font-black text-[10px] uppercase tracking-widest text-slate-500 hover:bg-slate-100 px-4 border-2 border-slate-100 h-10">
+                    <Button variant="ghost" size="sm" className="hidden sm:flex rounded-xl gap-2 font-black text-[10px] uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 px-4 border-2 border-slate-100 dark:border-white/10 h-10 transition-colors">
                       {React.createElement(modelOptions.find(m => m.id === selectedModel)?.icon || Sparkles, { size: 14 })}
                       {modelOptions.find(m => m.id === selectedModel)?.name}
                       <ChevronDown size={14} className="text-slate-400" />
@@ -694,23 +704,23 @@ export default function ChatInterface({ isSidebarOpen, setIsSidebarOpen }: ChatI
                   <p className="text-[10px] opacity-70">Current: {modelOptions.find(m => m.id === selectedModel)?.name}</p>
                 </TooltipContent>
               </Tooltip>
-              <DropdownMenuContent align="end" className="w-72 rounded-2xl p-2 shadow-2xl border-slate-200">
-                <div className="px-3 py-2 mb-1 text-[10px] font-black text-slate-400 uppercase tracking-widest">Select Model</div>
+              <DropdownMenuContent align="end" className="w-72 rounded-2xl p-2 shadow-2xl border-slate-200 dark:border-white/10 dark:bg-slate-900 transition-colors">
+                <div className="px-3 py-2 mb-1 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Select Model</div>
                 {modelOptions.map((opt) => (
                   <DropdownMenuItem 
                     key={opt.id} 
                     onClick={() => setSelectedModel(opt.id)}
                     className={cn(
                       "flex flex-col items-start gap-1 rounded-xl py-3 px-4 transition-all cursor-pointer mb-1",
-                      selectedModel === opt.id ? "bg-brand/5 border border-brand/10" : "hover:bg-slate-50"
+                      selectedModel === opt.id ? "bg-brand/5 border border-brand/10" : "hover:bg-slate-50 dark:hover:bg-white/5"
                     )}
                   >
                     <div className="flex items-center gap-3 w-full">
-                      <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", selectedModel === opt.id ? "bg-brand text-white" : "bg-slate-100 text-slate-500")}>
+                      <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", selectedModel === opt.id ? "bg-brand text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400")}>
                         <opt.icon size={16} />
                       </div>
                       <div className="flex-1">
-                        <div className={cn("text-sm font-black", selectedModel === opt.id ? "text-brand" : "text-slate-900")}>{opt.name}</div>
+                        <div className={cn("text-sm font-black", selectedModel === opt.id ? "text-brand" : "text-slate-900 dark:text-white")}>{opt.name}</div>
                         <div className="text-[10px] font-bold text-slate-400 leading-tight">{opt.desc}</div>
                       </div>
                       {selectedModel === opt.id && <CheckCircle2 size={14} className="text-brand" />}
@@ -722,7 +732,7 @@ export default function ChatInterface({ isSidebarOpen, setIsSidebarOpen }: ChatI
           </TooltipProvider>
 
           <Button 
-            className="bg-slate-900 hover:bg-slate-800 text-white rounded-xl gap-2 font-black text-[10px] uppercase tracking-widest px-4 h-10 shadow-lg shadow-brand/20 transition-all hover:scale-105 active:scale-95"
+            className="bg-slate-900 dark:bg-brand hover:bg-slate-800 dark:hover:bg-brand-dark text-white rounded-xl gap-2 font-black text-[10px] uppercase tracking-widest px-4 h-10 shadow-lg shadow-brand/20 transition-all hover:scale-105 active:scale-95"
             onClick={() => setShowPremiumModal(true)}
           >
             <Crown size={14} className="fill-white" />
@@ -1264,77 +1274,55 @@ export default function ChatInterface({ isSidebarOpen, setIsSidebarOpen }: ChatI
             </div>
           </div>
             <div className="flex items-center justify-between mt-4 px-2">
-            <div className="flex items-center gap-2 text-[11px] text-slate-400 font-medium">
+            <div className="flex items-center gap-2 text-[11px] text-slate-400 font-medium whitespace-nowrap overflow-hidden">
               {attachedFile ? (
-                <Dialog>
-                  <DialogTrigger 
-                    render={
-                      <div className="flex items-center gap-2 bg-brand/5 text-brand px-2 py-1 rounded-lg border border-brand/10 cursor-pointer hover:bg-brand/10 transition-colors">
-                        {attachedFile.preview ? (
-                          <div className="w-5 h-5 rounded overflow-hidden">
-                            <img src={attachedFile.preview} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                          </div>
-                        ) : (
-                          <FileText size={12} />
-                        )}
-                        <span className="truncate max-w-[100px]">{attachedFile.name}</span>
-                        <button 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setAttachedFile(null);
-                          }} 
-                          className="hover:text-red-500"
-                        >
-                          <XCircle size={12} />
-                        </button>
-                      </div>
-                    } 
-                  />
-                  <DialogContent className="max-w-3xl max-h-[80vh] overflow-hidden flex flex-col rounded-[2rem]">
-                    <DialogHeader>
-                      <DialogTitle className="flex items-center gap-2 text-xl font-black">
-                        {attachedFile.preview ? <ImageIcon className="text-brand" /> : <FileText className="text-brand" />}
-                        {attachedFile.name}
-                      </DialogTitle>
-                    </DialogHeader>
-                    {attachedFile.preview ? (
-                      <div className="flex-1 overflow-auto flex items-center justify-center bg-slate-100 rounded-2xl p-4 mt-4">
-                        <img src={attachedFile.preview} className="max-w-full max-h-full object-contain shadow-2xl rounded-lg" referrerPolicy="no-referrer" />
-                      </div>
-                    ) : (
-                      <ScrollArea className="flex-1 mt-4 bg-slate-50 rounded-2xl p-6 border border-slate-100">
-                        <pre className="text-xs font-mono text-slate-700 whitespace-pre-wrap leading-relaxed">
-                          {attachedFile.content}
-                        </pre>
-                      </ScrollArea>
-                    )}
-                    <div className="flex justify-between items-center mt-6">
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                        {attachedFile.type || "Text/Plain"}
-                      </p>
-                      <Button onClick={() => setAttachedFile(null)} variant="ghost" className="text-red-500 hover:bg-red-50 font-bold rounded-xl">
-                        Remove File
-                      </Button>
+                <div className="flex items-center gap-2 bg-brand/5 dark:bg-brand/10 text-brand px-2.5 py-1.5 rounded-xl border border-brand/10 shadow-sm cursor-pointer group transition-all">
+                  {attachedFile.preview ? (
+                    <div className="w-5 h-5 rounded overflow-hidden shadow-sm">
+                      <img src={attachedFile.preview} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                     </div>
-                  </DialogContent>
-                </Dialog>
+                  ) : (
+                    <FileText size={12} />
+                  )}
+                  <span className="truncate max-w-[120px] font-bold">{attachedFile.name}</span>
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setAttachedFile(null);
+                    }} 
+                    className="hover:text-red-500 transition-colors p-0.5"
+                  >
+                    <XCircle size={14} />
+                  </button>
+                </div>
               ) : (
-                <>
+                <div className="flex items-center gap-2 opacity-50">
                   <Sparkles size={12} className="text-brand" />
-                  <span>Saved prompts</span>
-                </>
+                  <span className="font-bold uppercase tracking-widest text-[9px]">Neural Context Ready</span>
+                </div>
               )}
             </div>
-            <Button variant="ghost" size="sm" className="h-7 rounded-lg text-[11px] text-slate-500 gap-1.5 border border-slate-200 relative overflow-hidden">
-              <Paperclip size={12} />
-              Attach file
-              <input 
-                type="file" 
-                className="absolute inset-0 opacity-0 cursor-pointer" 
-                onChange={handleFileUpload}
-                accept=".txt,.md,.js,.ts,.tsx,.json"
-              />
-            </Button>
+            <div className="flex items-center gap-1.5">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setShowLibrary(true)}
+                className="h-8 rounded-xl text-[10px] text-slate-500 dark:text-slate-400 gap-1.5 border border-slate-200 dark:border-white/5 font-black uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-white/5 transition-all"
+              >
+                <Library size={12} />
+                Library
+              </Button>
+              <Button variant="ghost" size="sm" className="h-8 rounded-xl text-[10px] text-slate-500 dark:text-slate-400 gap-1.5 border border-slate-200 dark:border-white/5 relative overflow-hidden font-black uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-white/5 transition-all">
+                <Paperclip size={12} />
+                Attach
+                <input 
+                  type="file" 
+                  className="absolute inset-0 opacity-0 cursor-pointer" 
+                  onChange={handleFileUpload}
+                  accept=".txt,.md,.js,.ts,.tsx,.json,.png,.jpg,.jpeg,.webp"
+                />
+              </Button>
+            </div>
           </div>
           <div className="text-center mt-6 text-[10px] text-slate-400">
             Join the Cortex community for more insights <Link to="#" className="text-brand hover:underline">Join Discord</Link>
@@ -1353,6 +1341,81 @@ export default function ChatInterface({ isSidebarOpen, setIsSidebarOpen }: ChatI
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Library Modal */}
+      <Dialog open={showLibrary} onOpenChange={setShowLibrary}>
+        <DialogContent className="sm:max-w-2xl rounded-[2.5rem] p-0 border-none shadow-2xl dark:bg-slate-900 transition-colors">
+          <div className="p-8">
+            <DialogHeader className="mb-6">
+              <DialogTitle className="text-3xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-3 italic uppercase">
+                <div className="w-10 h-10 bg-brand rounded-xl flex items-center justify-center text-white shadow-lg shadow-brand/20">
+                  <FileText size={24} />
+                </div>
+                Neural Library
+              </DialogTitle>
+              <DialogDescription className="text-slate-500 dark:text-slate-400 font-bold uppercase text-[10px] tracking-widest">
+                Select context for synthesis
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-3 max-h-[50vh] overflow-y-auto no-scrollbar pr-2">
+              {libraryFiles.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center bg-slate-50 dark:bg-white/5 rounded-3xl border border-slate-100 dark:border-white/5 transition-colors">
+                  <div className="w-16 h-16 bg-white dark:bg-slate-800 rounded-full flex items-center justify-center text-slate-200 dark:text-slate-700 mb-4 transition-colors">
+                    <Library size={32} />
+                  </div>
+                  <h3 className="text-lg font-black text-slate-800 dark:text-white">Empty Repository</h3>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Visit Files section to upload context.</p>
+                </div>
+              ) : (
+                libraryFiles.map((file) => (
+                  <div 
+                    key={file._id}
+                    onClick={() => {
+                      setAttachedFile({
+                        id: file._id,
+                        name: file.name,
+                        content: file.content,
+                        type: file.type,
+                        preview: file.type.startsWith('image/') ? file.content : undefined
+                      });
+                      setShowLibrary(false);
+                      toast.success(`Context synthesized: ${file.name}`);
+                    }}
+                    className="group bg-white dark:bg-white/5 hover:bg-slate-50 dark:hover:bg-white/[0.08] p-4 rounded-2xl border border-slate-100 dark:border-white/5 transition-all cursor-pointer flex items-center gap-4"
+                  >
+                    <div className="w-12 h-12 bg-slate-50 dark:bg-slate-800 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                      {file.type.startsWith('image/') ? (
+                        <ImageIcon className="text-purple-500" size={20} />
+                      ) : (
+                        <FileText className="text-blue-500" size={20} />
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-sm font-black text-slate-800 dark:text-white group-hover:text-brand transition-colors">{file.name}</div>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{file.type}</span>
+                        <span className="w-1 h-1 bg-slate-200 dark:bg-slate-700 rounded-full" />
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{file.size}</span>
+                      </div>
+                    </div>
+                    <Plus className="text-slate-300 group-hover:text-brand transition-colors" size={20} />
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="mt-8 flex justify-end">
+              <Button 
+                onClick={() => setShowLibrary(false)}
+                className="bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl h-12 px-8 font-black shadow-lg transition-all hover:scale-105 active:scale-95"
+              >
+                Return to Chat
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
       {/* Premium Modal */}
       <PremiumModal isOpen={showPremiumModal} onOpenChange={setShowPremiumModal} />
     </div>

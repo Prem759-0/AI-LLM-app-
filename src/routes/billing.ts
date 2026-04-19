@@ -99,14 +99,30 @@ router.get("/status", ClerkExpressRequireAuth(), async (req: any, res) => {
       return res.status(401).json({ error: "Auth required" });
     }
 
-    const user = await User.findOne({ clerkId: userId });
+    let user = await User.findOne({ clerkId: userId });
     
     // If user not in DB yet, return basic free tier
     if (!user) {
       return res.json({ 
         isPro: false, 
-        usage: { messages: 0, images: 0, files: 0 } 
+        usage: { messages: 0, images: 0, files: 0, lastReset: new Date() } 
       });
+    }
+
+    // Daily Usage Reset Protocol
+    const now = new Date();
+    const lastReset = new Date(user.usage.lastReset || 0);
+    const isNewDay = 
+      now.getUTCDate() !== lastReset.getUTCDate() || 
+      now.getUTCMonth() !== lastReset.getUTCMonth() || 
+      now.getUTCFullYear() !== lastReset.getUTCFullYear();
+
+    if (isNewDay) {
+      console.log(`[Neural Reset] Replenishing bandwidth for ${userId}`);
+      user.usage.messages = 0;
+      user.usage.images = 0;
+      user.usage.lastReset = now;
+      await user.save();
     }
 
     res.json({ isPro: user.isPro || false, usage: user.usage });
