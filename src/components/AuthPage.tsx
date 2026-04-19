@@ -27,13 +27,23 @@ export default function AuthPage() {
   // Redirect if already logged in
   useEffect(() => {
     if (isUserLoaded && user) {
-      navigate("/");
+      console.log("[Auth] Navigator detected as already synthesized. Transitioning to root.");
+      navigate("/", { replace: true });
     }
   }, [isUserLoaded, user, navigate]);
 
   const handleLogin = async () => {
     if (!isSignInLoaded) return;
     try {
+      setLoading(true);
+      
+      // If there's an active session attempt, check its status
+      if (signIn.status === "complete") {
+        await setSignInActive({ session: signIn.createdSessionId });
+        navigate("/");
+        return;
+      }
+
       const result = await signIn.create({
         identifier: email,
         password,

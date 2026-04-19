@@ -8,6 +8,7 @@ import { Progress } from "./ui/progress.tsx";
 import PremiumModal from "./PremiumModal.tsx";
 import api from "../lib/api.ts";
 import { toast } from "sonner";
+import FilePreview from "./FilePreview.tsx";
 
 export default function Files() {
   const [files, setFiles] = useState<any[]>([]);
@@ -15,6 +16,10 @@ export default function Files() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showPremiumModal, setShowPremiumModal] = useState(false);
   const [purgingFileId, setPurgingFileId] = useState<string | null>(null);
+  
+  // Preview state
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<any>(null);
 
   useEffect(() => {
     fetchFiles();
@@ -24,8 +29,8 @@ export default function Files() {
     try {
       const res = await api.get("files");
       setFiles(Array.isArray(res.data) ? res.data : []);
-    } catch (err) {
-      toast.error("Failed to load your neural assets. Database connection may be initializing.");
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || "Failed to load your neural assets. Database connection may be initializing.");
     } finally {
       setLoading(false);
     }
@@ -40,6 +45,11 @@ export default function Files() {
     } catch (err) {
       toast.error("Failed to delete asset. Retrieval failure.");
     }
+  };
+
+  const handlePreview = (file: any) => {
+    setSelectedFile(file);
+    setPreviewOpen(true);
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -87,6 +97,7 @@ export default function Files() {
   return (
     <div className="flex flex-col h-full w-full max-w-6xl mx-auto px-4 md:px-8 py-8 overflow-y-auto no-scrollbar">
       <PremiumModal isOpen={showPremiumModal} onOpenChange={setShowPremiumModal} />
+      <FilePreview isOpen={previewOpen} onOpenChange={setPreviewOpen} file={selectedFile} />
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
         <motion.div
           initial={{ opacity: 0, x: -20 }}
@@ -151,6 +162,7 @@ export default function Files() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: i * 0.05 }}
               className="flex flex-col md:grid md:grid-cols-12 gap-4 px-6 md:px-8 py-6 items-start md:items-center hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-colors cursor-pointer group"
+              onClick={() => handlePreview(f)}
             >
               <div className="w-full md:col-span-6 flex items-center gap-4">
                 <div className="w-10 h-10 md:w-12 md:h-12 bg-white dark:bg-slate-800 rounded-xl md:rounded-2xl flex items-center justify-center shadow-sm border border-slate-100 dark:border-white/5 group-hover:scale-110 transition-transform shrink-0">

@@ -19,7 +19,7 @@ import { ScrollArea } from "./ui/scroll-area.tsx";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar.tsx";
 import { 
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, 
-  DropdownMenuTrigger 
+  DropdownMenuTrigger, DropdownMenuSeparator 
 } from "./ui/dropdown-menu.tsx";
 import { 
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription 
@@ -36,6 +36,8 @@ import {
 } from "./ui/tooltip.tsx";
 import PremiumModal from "./PremiumModal.tsx";
 import ContextManager from "./ContextManager.tsx";
+import FilePreview from "./FilePreview.tsx";
+import ExportModal from "./ExportModal.tsx";
 
 interface Message {
   id?: string;
@@ -96,6 +98,30 @@ export default function ChatInterface({ isSidebarOpen, setIsSidebarOpen }: ChatI
   const [editingContent, setEditingContent] = useState("");
   const [deletingMessageIndex, setDeletingMessageIndex] = useState<number | null>(null);
   const [showPurgeConfirm, setShowPurgeConfirm] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [allChats, setAllChats] = useState<any[]>([]);
+  const [previewAssetOpen, setPreviewAssetOpen] = useState(false);
+  const [selectedAsset, setSelectedAsset] = useState<any>(null);
+
+  const openExportModal = async () => {
+    try {
+      const res = await api.get("chat");
+      setAllChats(res.data);
+      setShowExportModal(true);
+    } catch (err) {
+      toast.error("Cloud linkage failed: Unable to retrieve chat records");
+    }
+  };
+
+  const handlePreviewAsset = (asset: any) => {
+    setSelectedAsset({
+      name: asset.name,
+      type: asset.type || "text/plain",
+      size: asset.size || "Unknown",
+      content: asset.content
+    });
+    setPreviewAssetOpen(true);
+  };
 
   const confirmPurge = (index: number) => {
     setDeletingMessageIndex(index);
@@ -679,6 +705,14 @@ export default function ChatInterface({ isSidebarOpen, setIsSidebarOpen }: ChatI
                     >
                       <FileJson size={14} className="text-amber-500" />
                       JSON Structure
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator className="dark:bg-white/5" />
+                    <DropdownMenuItem 
+                      onClick={openExportModal}
+                      className="rounded-lg py-2 px-3 transition-all cursor-pointer font-black text-xs hover:bg-slate-50 dark:hover:bg-white/5 flex items-center gap-2 text-brand"
+                    >
+                      <Download size={14} />
+                      Batch Export Hub...
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -1395,7 +1429,10 @@ export default function ChatInterface({ isSidebarOpen, setIsSidebarOpen }: ChatI
             <div className="flex items-center justify-between mt-4 px-2">
             <div className="flex items-center gap-2 text-[11px] text-slate-400 font-medium whitespace-nowrap overflow-hidden">
               {attachedFile ? (
-                <div className="flex items-center gap-2 bg-brand/5 dark:bg-brand/10 text-brand px-2.5 py-1.5 rounded-xl border border-brand/10 shadow-sm cursor-pointer group transition-all">
+                <div 
+                  onClick={() => handlePreviewAsset(attachedFile)}
+                  className="flex items-center gap-2 bg-brand/5 dark:bg-brand/10 text-brand px-2.5 py-1.5 rounded-xl border border-brand/10 shadow-sm cursor-pointer group transition-all"
+                >
                   {attachedFile.preview ? (
                     <div className="w-5 h-5 rounded overflow-hidden shadow-sm">
                       <img src={attachedFile.preview} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
@@ -1404,15 +1441,18 @@ export default function ChatInterface({ isSidebarOpen, setIsSidebarOpen }: ChatI
                     <FileText size={12} />
                   )}
                   <span className="truncate max-w-[120px] font-bold">{attachedFile.name}</span>
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setAttachedFile(null);
-                    }} 
-                    className="hover:text-red-500 transition-colors p-0.5"
-                  >
-                    <XCircle size={14} />
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <Eye size={12} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setAttachedFile(null);
+                      }} 
+                      className="hover:text-red-500 transition-colors p-0.5"
+                    >
+                      <XCircle size={14} />
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <div className="flex items-center gap-2 opacity-50">
@@ -1518,7 +1558,20 @@ export default function ChatInterface({ isSidebarOpen, setIsSidebarOpen }: ChatI
                         <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{file.size}</span>
                       </div>
                     </div>
-                    <Plus className="text-slate-300 group-hover:text-brand transition-colors" size={20} />
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-slate-400 hover:text-brand rounded-lg opacity-0 group-hover:opacity-100 transition-all"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handlePreviewAsset(file);
+                        }}
+                      >
+                        <Eye size={16} />
+                      </Button>
+                      <Plus className="text-slate-300 group-hover:text-brand transition-colors" size={20} />
+                    </div>
                   </div>
                 ))
               )}
@@ -1559,6 +1612,8 @@ export default function ChatInterface({ isSidebarOpen, setIsSidebarOpen }: ChatI
       
       {/* Premium Modal */}
       <PremiumModal isOpen={showPremiumModal} onOpenChange={setShowPremiumModal} />
+      <FilePreview isOpen={previewAssetOpen} onOpenChange={setPreviewAssetOpen} file={selectedAsset} />
+      <ExportModal isOpen={showExportModal} onOpenChange={setShowExportModal} chats={allChats} />
     </div>
   );
 }
