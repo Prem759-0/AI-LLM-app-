@@ -14,14 +14,19 @@ import fileRoutes from "./src/routes/files.ts";
 
 dotenv.config();
 
-// Clerk v5 requires CLERK_PUBLISHABLE_KEY and CLERK_SECRET_KEY in the environment.
-// We map the VITE_ version to the standard version if it's missing for backend compatibility.
+// Clerk v5 require CLERK_PUBLISHABLE_KEY and CLERK_SECRET_KEY in the environment.
+// In some environments, users might prefix them with VITE_ even for the backend.
 if (!process.env.CLERK_PUBLISHABLE_KEY && process.env.VITE_CLERK_PUBLISHABLE_KEY) {
   process.env.CLERK_PUBLISHABLE_KEY = process.env.VITE_CLERK_PUBLISHABLE_KEY;
 }
+if (!process.env.CLERK_SECRET_KEY && process.env.VITE_CLERK_SECRET_KEY) {
+  process.env.CLERK_SECRET_KEY = process.env.VITE_CLERK_SECRET_KEY;
+}
 
 if (!process.env.CLERK_SECRET_KEY) {
-  console.warn("WARNING: CLERK_SECRET_KEY is missing! Neural synthesis authentication will fail.");
+  console.error("CRITICAL: CLERK_SECRET_KEY is missing! Neural synthesis authentication will fail. Check environment variables.");
+} else {
+  console.log(`[Auth] Clerk Secret Key initialized: ${process.env.CLERK_SECRET_KEY.slice(0, 7)}...`);
 }
 
 if (!process.env.STRIPE_SECRET_KEY) {
@@ -29,7 +34,7 @@ if (!process.env.STRIPE_SECRET_KEY) {
 }
 
 if (!process.env.MONGODB_URI) {
-  console.error("CRITICAL: MONGODB_URI is missing! The neural database cannot be hydrated.");
+  console.error("CRITICAL: MONGODB_URI is missing! The neural database cannot be hydrated. Synthesis and memory will be lost.");
 }
 
 const __filename = fileURLToPath(import.meta.url);
@@ -146,18 +151,28 @@ const connectDB = async () => {
 
 // Middleware to ensure DB is connected for API routes
 app.use("/api", async (req, res, next) => {
+  // Skip health check to avoid recursion if it was there
+  if (req.path === "/health") return next();
+
   try {
     const db = await connectDB();
-    if (!db || mongoose.connection.readyState !== 1) {
-      console.error("[Backend] Database connection required for /api but failed.");
+    const state = mongoose.connection.readyState;
+    if (!db || state !== 1) {
+      console.error(`[DB Error] ${req.method} ${req.path} -> Connection invalid (State: ${state})`);
       return res.status(503).json({ 
         error: "Database connection unavailable", 
-        details: "Please check your MONGODB_URI environment variable in settings." 
+        details: "Mongoose could not establish a stable bridge to the neural cloud. Check MONGODB_URI.",
+        readyState: state
       });
     }
     next();
   } catch (err: any) {
-    res.status(500).json({ error: "Database initialization error", details: err.message });
+    console.error("[DB Crash]", err);
+    res.status(500).json({ 
+      error: "Database initialization error", 
+      details: err.message,
+      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+    });
   }
 });
 
@@ -175,7 +190,12 @@ app.get("/api/health", (req, res) => {
     status: "ok", 
     environment: process.env.NODE_ENV,
     dbConnected: mongoose.connection.readyState === 1,
-    vercel: !!process.env.VERCEL
+    dbState: mongoose.connection.readyState,
+    clerkConfigured: !!process.env.CLERK_SECRET_KEY,
+    stripeConfigured: !!process.env.STRIPE_SECRET_KEY,
+    openRouterConfigured: !!process.env.OPENROUTER_API_KEY,
+    vercel: !!process.env.VERCEL,
+    timestamp: new Date().toISOString()
   });
 });
 
