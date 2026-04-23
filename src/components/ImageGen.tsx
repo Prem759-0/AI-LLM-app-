@@ -1,7 +1,7 @@
 import React, { useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { Sparkles, Image as ImageIcon, Download, Share2, Wand2, RefreshCw, ArrowLeft } from "lucide-react";
+import { Sparkles, Image as ImageIcon, Download, Share2, Wand2, RefreshCw, ArrowLeft, Zap, Plus } from "lucide-react";
 import { Button } from "./ui/button.tsx";
 import { Input } from "./ui/input.tsx";
 import { Card } from "./ui/card.tsx";

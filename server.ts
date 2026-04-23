@@ -97,10 +97,21 @@ app.use((req, res, next) => {
   const oldJson = res.json;
   res.json = function(data) {
     if (res.statusCode >= 400) {
-      console.error(`[API Error] ${req.method} ${req.path} -> ${res.statusCode}:`, data);
+      console.error(`[API Error] ${req.method} ${req.path} -> ${res.statusCode}:`, JSON.stringify(data, null, 2));
     }
     return oldJson.call(this, data);
   };
+  next();
+});
+
+// Middleware to log environment health
+app.use("/api", (req, res, next) => {
+  if (!process.env.MONGODB_URI) {
+    console.error("[Backend] CRITICAL: MONGODB_URI is totally missing from environment!");
+  }
+  if (!process.env.CLERK_SECRET_KEY) {
+    console.warn("[Backend] WARNING: CLERK_SECRET_KEY is totally missing. Auth will fail.");
+  }
   next();
 });
 
