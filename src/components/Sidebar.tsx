@@ -160,6 +160,7 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
   const location = useLocation();
   const [chats, setChats] = useState<Chat[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -347,21 +348,45 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
       </div>
 
       <div className={cn("px-4 mb-6", !isOpen && "md:hidden")}>
-        <div className="relative group">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-600 group-focus-within:text-brand transition-colors" size={16} />
+        <div className={cn(
+          "relative group transition-all duration-300",
+          isSearchFocused ? "scale-[1.02]" : "scale-100"
+        )}>
+          <Search className={cn(
+            "absolute left-3 top-1/2 -translate-y-1/2 transition-colors duration-300",
+            isSearchFocused ? "text-brand" : "text-slate-400 dark:text-slate-600"
+          )} size={16} />
           <input 
             type="text" 
             placeholder="Search chats..." 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            onFocus={() => setIsSearchFocused(true)}
+            onBlur={() => setIsSearchFocused(false)}
             className={cn(
-              "w-full bg-slate-100/50 dark:bg-white/5 border-none rounded-xl py-2.5 pl-10 pr-4 text-sm focus:ring-2 focus:ring-brand/20 transition-all outline-none font-medium text-slate-700 dark:text-slate-300 placeholder:text-slate-400 dark:placeholder:text-slate-600",
+              "w-full bg-slate-100/50 dark:bg-white/5 border-2 border-transparent rounded-xl py-2.5 pl-10 pr-10 text-sm transition-all outline-none font-medium text-slate-700 dark:text-slate-300 placeholder:text-slate-400 dark:placeholder:text-slate-600",
+              isSearchFocused ? "border-brand/20 bg-white dark:bg-white/10 shadow-lg shadow-brand/5" : "hover:bg-slate-200/50 dark:hover:bg-white/10",
               !isOpen && "md:hidden"
             )}
           />
-          <div className={cn("absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-400 border border-slate-200 rounded px-1.5 py-0.5", !isOpen && "md:hidden")}>
-            ⌘K
-          </div>
+          <AnimatePresence>
+            {searchQuery && (
+              <motion.button
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-brand transition-colors p-1 rounded-full hover:bg-slate-200 dark:hover:bg-white/10"
+              >
+                <Plus size={14} className="rotate-45" />
+              </motion.button>
+            )}
+          </AnimatePresence>
+          {!searchQuery && (
+            <div className={cn("absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-300 border border-slate-200 dark:border-white/10 rounded px-1.5 py-0.5 pointer-events-none opacity-50", !isOpen && "md:hidden")}>
+              ⌘K
+            </div>
+          )}
         </div>
       </div>
 

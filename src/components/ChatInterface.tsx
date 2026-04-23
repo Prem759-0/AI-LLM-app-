@@ -867,27 +867,37 @@ export default function ChatInterface({ isSidebarOpen, setIsSidebarOpen }: ChatI
       <ScrollArea className={cn("flex-1 min-h-0", messages.length === 0 && "no-scrollbar")} onScroll={handleScroll}>
         <div className={cn(
           "mx-auto px-4 md:px-8 transition-all duration-500",
-          messages.length === 0 ? "max-w-4xl h-full flex items-center justify-center p-0" : "py-4 space-y-8 max-w-4xl",
-          isCompareMode && messages.length > 0 && "max-w-7xl grid grid-cols-1 lg:grid-cols-2 gap-8"
+          messages.length === 0 ? "max-w-4xl h-full flex items-center justify-center p-0" : "py-4 max-w-4xl",
+          isCompareMode && messages.length > 0 && "max-w-7xl"
         )}>
           {messages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center text-center space-y-12 w-full max-w-2xl">
+            <div className="flex flex-col items-center justify-center text-center space-y-12 w-full max-w-2xl px-4 py-20">
               <motion.div 
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
+                initial={{ scale: 0.8, opacity: 0, rotate: -10 }}
+                animate={{ scale: 1, opacity: 1, rotate: 0 }}
+                transition={{ duration: 0.8, ease: "easeOut" }}
                 className="w-24 h-24 bg-brand rounded-[2.5rem] flex items-center justify-center text-white shadow-2xl shadow-brand/30 relative group"
               >
                 <div className="absolute inset-0 bg-brand rounded-[2.5rem] animate-ping opacity-20 group-hover:opacity-40 transition-opacity" />
-                <Sparkles size={48} className="relative z-10" />
+                <Sparkles size={48} className="relative z-10 group-hover:scale-110 transition-transform" />
               </motion.div>
               
               <div className="space-y-4">
-                <h1 className="text-4xl md:text-6xl font-black text-slate-900 dark:text-white tracking-tighter uppercase italic pr-4">
+                <motion.h1 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="text-4xl md:text-6xl font-black text-slate-900 dark:text-white tracking-tighter uppercase italic"
+                >
                   Neural <span className="brand-text-gradient">Genesis</span>
-                </h1>
-                <p className="text-lg md:text-xl text-slate-400 dark:text-slate-500 font-medium leading-relaxed">
-                  Your advanced neural partner for research, <br className="hidden sm:inline" /> creation, and complex problem solving.
-                </p>
+                </motion.h1>
+                <motion.p 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="text-lg md:text-xl text-slate-400 dark:text-slate-500 font-medium leading-relaxed"
+                >
+                  Advanced neural partner for research, <br className="hidden sm:inline" /> creation, and autonomous problem solving.
+                </motion.p>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 w-full mt-8">
@@ -897,197 +907,199 @@ export default function ChatInterface({ isSidebarOpen, setIsSidebarOpen }: ChatI
                     initial={{ y: 20, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ delay: i * 0.1 + 0.3 }}
-                    className="p-6 rounded-[2rem] bg-white dark:bg-slate-900/50 border border-slate-100 dark:border-white/5 hover:border-brand/40 dark:hover:border-brand/40 hover:shadow-2xl hover:shadow-brand/5 transition-all text-left cursor-pointer group flex flex-col items-start"
+                    whileHover={{ y: -5, scale: 1.02 }}
+                    className="p-6 rounded-[2rem] bg-white dark:bg-slate-900/50 border border-slate-100 dark:border-white/5 hover:border-brand/40 dark:hover:border-brand/40 hover:shadow-2xl hover:shadow-brand/5 transition-all text-left cursor-pointer group flex flex-col items-start h-full"
                     onClick={() => setInput(s.desc)}
                   >
                     <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-white/5 flex items-center justify-center text-slate-400 dark:text-slate-600 group-hover:bg-brand/10 group-hover:text-brand transition-colors mb-4">
                       <s.icon size={20} />
                     </div>
                     <h3 className="font-black text-slate-800 dark:text-slate-200 text-sm mb-1 group-hover:text-brand transition-colors uppercase italic tracking-tighter">{s.title}</h3>
-                    <p className="text-xs text-slate-500 dark:text-slate-500 font-medium leading-relaxed line-clamp-2">{s.desc}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-500 font-medium leading-relaxed line-clamp-3">{s.desc}</p>
                   </motion.div>
                 ))}
+                <motion.div
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: suggestions.length * 0.1 + 0.3 }}
+                  whileHover={{ y: -5, scale: 1.02 }}
+                  className="p-6 rounded-[2rem] bg-brand text-white border-none shadow-xl shadow-brand/20 transition-all text-left cursor-pointer group flex flex-col items-start h-full sm:col-span-2 lg:col-span-3 lg:h-auto lg:flex-row lg:items-center lg:gap-6"
+                  onClick={() => navigate("/image")}
+                >
+                  <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center text-white mb-4 lg:mb-0 lg:shrink-0">
+                    <ImageIcon size={24} />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-white text-base mb-1 uppercase italic tracking-tighter">Neural Visual Synthesis</h3>
+                    <p className="text-xs text-white/80 font-medium leading-relaxed">Access the Creative Studio to generate high-fidelity imagery from natural language prompts.</p>
+                  </div>
+                  <Wand2 className="ml-auto hidden lg:block opacity-40 group-hover:opacity-100 group-hover:rotate-12 transition-all" size={24} />
+                </motion.div>
               </div>
             </div>
           ) : (
-            <div className={cn("space-y-8 h-full", isCompareMode ? "flex flex-col lg:flex-row gap-8" : "")}>
-              <div className={cn("space-y-8", isCompareMode ? "flex-1 min-w-0" : "")}>
-                {messages.map((m, i) => (
-                  <motion.div 
-                    layout
-                    initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    key={m.id || i}
-                    className={cn(
-                      "flex gap-4 group/item",
-                      m.role === "user" ? "flex-row-reverse" : "flex-row"
-                    )}
-                  >
-                    <Avatar className={cn(
-                      "h-10 w-10 border-2 border-white shadow-lg shrink-0 transition-all hover:scale-110 active:scale-95 cursor-pointer",
-                      m.role === "user" ? "bg-gradient-to-tr from-brand to-indigo-600 ring-2 ring-brand/10" : "bg-slate-900 ring-2 ring-slate-100"
-                    )}>
-                      {m.role === "user" ? (
-                        <>
-                          <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name}`} />
-                          <AvatarFallback className="bg-brand text-white text-xs font-black">{user?.name?.[0]}</AvatarFallback>
-                        </>
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-brand">
-                          <Sparkles size={20} className="animate-pulse" />
-                        </div>
+            <div className={cn("flex flex-col lg:flex-row gap-8", isCompareMode ? "items-start" : "items-center")}>
+              <div className={cn("space-y-8 pb-10 flex-1", isCompareMode ? "w-full" : "max-w-none")}>
+                <AnimatePresence mode="popLayout" initial={false}>
+                  {messages.map((m, i) => (
+                    <motion.div
+                      key={i}
+                      layout
+                      initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.9 }}
+                      transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                      className={cn(
+                        "flex gap-4 group/item relative",
+                        m.role === "user" ? "flex-row-reverse" : "flex-row"
                       )}
-                    </Avatar>
-                    <div className={cn(
-                      "max-w-[85%] md:max-w-[75%] relative group/message transition-all",
-                      m.role === "user" ? "chat-bubble-user" : "chat-bubble-ai"
-                    )}>
-                      {editingIndex === i ? (
-                        <div className="flex flex-col gap-2 min-w-[200px] sm:min-w-[300px]">
-                          <textarea
-                            autoFocus
-                            value={editingContent}
-                            onChange={(e) => setEditingContent(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter" && !e.shiftKey) {
-                                e.preventDefault();
-                                saveEditedMessage(i);
-                              }
-                              if (e.key === "Escape") setEditingIndex(null);
-                            }}
-                            className="w-full bg-white/10 dark:bg-black/20 text-white dark:text-slate-200 text-sm md:text-base p-3 rounded-2xl outline-none focus:ring-2 focus:ring-white/30 border-none resize-none min-h-[80px]"
-                          />
-                          <div className="flex justify-end gap-2">
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              onClick={() => setEditingIndex(null)}
-                              className="text-white/60 hover:text-white hover:bg-white/10 h-8 font-black uppercase tracking-widest text-[9px]"
-                            >
-                              Cancel
-                            </Button>
-                            <Button 
-                              size="sm" 
-                              onClick={() => saveEditedMessage(i)}
-                              className="bg-white text-brand hover:bg-white/90 h-8 font-black uppercase tracking-widest text-[9px] px-4"
-                            >
-                              Save Synthesis
-                            </Button>
+                    >
+                      <Avatar className={cn(
+                        "h-10 w-10 border-2 border-white dark:border-slate-800 shadow-xl shrink-0 transition-all hover:scale-110 active:scale-95 cursor-pointer",
+                        m.role === "user" ? "bg-gradient-to-tr from-brand to-indigo-600 ring-4 ring-brand/5" : "bg-slate-900 ring-4 ring-slate-100 dark:ring-white/5"
+                      )}>
+                        {m.role === "user" ? (
+                          <>
+                            <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name}`} />
+                            <AvatarFallback className="bg-brand text-white text-xs font-black">{user?.name?.[0]}</AvatarFallback>
+                          </>
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-brand">
+                            <Sparkles size={20} className="animate-pulse" />
                           </div>
-                        </div>
-                      ) : (
-                        <div className={cn(
-                          "prose prose-sm md:prose-base dark:prose-invert leading-relaxed",
-                          m.role === "user" ? "text-white selection:bg-white/20" : "text-slate-700 dark:text-slate-300 selection:bg-brand/10"
-                        )}>
-                          <ReactMarkdown components={MarkdownComponents} remarkPlugins={[remarkGfm]}>{m.content}</ReactMarkdown>
-                        </div>
-                      )}
+                        )}
+                      </Avatar>
                       
                       <div className={cn(
-                        "absolute top-0 flex gap-1 opacity-0 group-hover/message:opacity-100 transition-all duration-200 z-20",
-                        m.role === "user" ? "-left-20 flex-row-reverse" : "-right-24"
+                        "max-w-[85%] md:max-w-[75%] relative group/message transition-all duration-300",
+                        m.role === "user" ? "chat-bubble-user" : "chat-bubble-ai"
                       )}>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 rounded-xl bg-white/80 dark:bg-slate-800/90 backdrop-blur-sm shadow-sm border border-slate-100 dark:border-white/5 text-slate-400 dark:text-slate-500 hover:text-brand hover:scale-110 transition-all"
-                          onClick={() => {
-                            navigator.clipboard.writeText(m.content);
-                            toast.success("Intelligence cloned to clipboard");
-                          }}
-                          title="Copy content"
+                        {editingIndex === i ? (
+                          <div className="flex flex-col gap-2 min-w-[240px] sm:min-w-[340px] p-2">
+                            <textarea
+                              autoFocus
+                              value={editingContent}
+                              onChange={(e) => setEditingContent(e.target.value)}
+                              className="w-full bg-white/10 dark:bg-black/20 text-white dark:text-slate-200 text-sm md:text-base p-4 rounded-2xl outline-none focus:ring-2 focus:ring-white/30 border-none resize-none min-h-[120px] font-medium"
+                            />
+                            <div className="flex justify-end gap-2 pr-2">
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                onClick={() => setEditingIndex(null)}
+                                className="text-white/60 hover:text-white hover:bg-white/10 h-9 font-black uppercase tracking-widest text-[9px] px-6 rounded-xl"
+                              >
+                                Abort
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                onClick={() => saveEditedMessage(i)}
+                                className="bg-white text-brand hover:bg-white/90 h-9 font-black uppercase tracking-widest text-[9px] px-6 rounded-xl shadow-lg"
+                              >
+                                Commit Synthesis
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className={cn(
+                            "prose prose-sm md:prose-base dark:prose-invert leading-relaxed transition-colors",
+                            m.role === "user" ? "text-white prose-headings:text-white selection:bg-white/20" : "text-slate-700 dark:text-slate-300 selection:bg-brand/10"
+                          )}>
+                            <ReactMarkdown components={MarkdownComponents} remarkPlugins={[remarkGfm]}>{m.content}</ReactMarkdown>
+                          </div>
+                        )}
+                        
+                        <motion.div 
+                          initial={{ opacity: 0, x: m.role === "user" ? 10 : -10 }}
+                          whileHover={{ opacity: 1, x: 0 }}
+                          className={cn(
+                            "absolute top-0 flex gap-1.5 opacity-0 group-hover/message:opacity-100 transition-all duration-300 z-20 pointer-events-none group-hover/message:pointer-events-auto",
+                            m.role === "user" ? "-left-20 flex-row-reverse pr-4" : "-right-24 pl-4"
+                          )}
                         >
-                          <Copy size={14} />
-                        </Button>
-                        <div className="relative">
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 rounded-xl bg-white/80 dark:bg-slate-800/90 backdrop-blur-sm shadow-sm border border-slate-100 dark:border-white/5 text-slate-400 dark:text-slate-500 hover:text-red-500 hover:scale-110 transition-all"
-                            onClick={() => confirmPurge(i)}
-                            title="Purge message"
+                            className="h-8 w-8 rounded-xl bg-white/90 dark:bg-slate-800/90 backdrop-blur-md shadow-xl border border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400 hover:text-brand hover:scale-110 transition-all"
+                            onClick={() => {
+                              navigator.clipboard.writeText(m.content);
+                              toast.success("Intelligence cloned");
+                            }}
                           >
-                            <Trash2 size={14} />
+                            <Copy size={12} />
                           </Button>
-                        </div>
-                        {m.role === "assistant" && (
-                          <div className="flex items-center gap-1">
-                            <button
-                              className={cn(
-                                "h-8 w-8 rounded-xl bg-white/80 dark:bg-slate-800/90 backdrop-blur-sm shadow-sm border border-slate-100 dark:border-white/5 transition-all flex items-center justify-center",
-                                isSpeaking ? "text-brand animate-pulse bg-brand/5 border-brand/20 shadow-brand/10" : "text-slate-400 dark:text-slate-500 hover:text-brand hover:scale-110"
-                              )}
-                              onClick={() => speakText(m.content)}
-                            >
-                              {isSpeaking ? <XCircle size={14} className="text-red-500" /> : <Volume2 size={14} />}
-                            </button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 rounded-xl bg-white/90 dark:bg-slate-800/90 backdrop-blur-md shadow-xl border border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400 hover:text-red-500 hover:scale-110 transition-all"
+                            onClick={() => confirmPurge(i)}
+                          >
+                            <Trash2 size={12} />
+                          </Button>
+                          {m.role === "assistant" && (
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8 rounded-xl bg-white/80 dark:bg-slate-800/90 backdrop-blur-sm shadow-sm border border-slate-100 dark:border-white/5 text-slate-400 dark:text-slate-500 hover:text-brand hover:scale-110 transition-all"
-                              onClick={() => {
-                                const lastUserMessage = messages.filter((msg, idx) => msg.role === "user" && idx <= i).pop();
-                                if (lastUserMessage) {
-                                  // Re-synthesize from this point
-                                  const historyUpToThisPoint = messages.slice(0, i);
-                                  setMessages(historyUpToThisPoint);
-                                  handleSubmit(undefined, lastUserMessage.content, historyUpToThisPoint);
-                                }
-                              }}
-                              title="Re-synthesize from here"
+                              className={cn(
+                                "h-8 w-8 rounded-xl bg-white/90 dark:bg-slate-800/90 backdrop-blur-md shadow-xl border border-slate-200 dark:border-white/10 transition-all hover:scale-110",
+                                isSpeaking ? "text-red-500" : "text-slate-500 dark:text-slate-400 hover:text-brand"
+                              )}
+                              onClick={() => speakText(m.content)}
                             >
-                              <Wand2 size={14} />
+                              {isSpeaking ? <XCircle size={12} /> : <Volume2 size={12} />}
                             </Button>
+                          )}
+                          {m.role === "user" && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 rounded-xl bg-white/90 dark:bg-slate-800/90 backdrop-blur-md shadow-xl border border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400 hover:text-brand hover:scale-110 transition-all"
+                              onClick={() => {
+                                setEditingIndex(i);
+                                setEditingContent(m.content);
+                              }}
+                            >
+                              <Pencil size={12} />
+                            </Button>
+                          )}
+                        </motion.div>
+                      </div>
+                    </motion.div>
+                  ))}
+
+                  {isTyping && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="flex gap-4"
+                    >
+                      <Avatar className="h-10 w-10 border-2 border-white dark:border-slate-800 shadow-xl bg-slate-900 shrink-0 flex items-center justify-center text-brand">
+                        <Sparkles size={20} className="animate-pulse" />
+                      </Avatar>
+                      <div className="chat-bubble-ai min-w-[140px] relative overflow-hidden group">
+                        {streamingContent ? (
+                          <div className="prose prose-sm md:prose-base dark:prose-invert">
+                            <ReactMarkdown components={MarkdownComponents} remarkPlugins={[remarkGfm]}>{streamingContent}</ReactMarkdown>
+                            <motion.span 
+                              animate={{ opacity: [1, 0, 1] }}
+                              transition={{ repeat: Infinity, duration: 0.8 }}
+                              className="inline-block w-2 h-4 bg-brand ml-1 align-middle"
+                            />
+                          </div>
+                        ) : (
+                          <div className="flex flex-col gap-3 py-1">
+                            <div className="flex gap-1.5">
+                              <motion.div animate={{ scale: [1, 1.5, 1], opacity: [0.4, 1, 0.4] }} transition={{ repeat: Infinity, duration: 1 }} className="w-2 h-2 bg-brand rounded-full" />
+                              <motion.div animate={{ scale: [1, 1.5, 1], opacity: [0.4, 1, 0.4] }} transition={{ repeat: Infinity, duration: 1, delay: 0.2 }} className="w-2 h-2 bg-brand rounded-full" />
+                              <motion.div animate={{ scale: [1, 1.5, 1], opacity: [0.4, 1, 0.4] }} transition={{ repeat: Infinity, duration: 1, delay: 0.4 }} className="w-2 h-2 bg-brand rounded-full" />
+                            </div>
+                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] italic">Synthesizing intelligence...</span>
                           </div>
                         )}
-                        {m.role === "user" && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 rounded-xl bg-white/80 dark:bg-slate-800/90 backdrop-blur-sm shadow-sm border border-slate-100 dark:border-white/5 text-slate-400 dark:text-slate-500 hover:text-brand hover:scale-110 transition-all"
-                            onClick={() => {
-                              setEditingIndex(i);
-                              setEditingContent(m.content);
-                            }}
-                            title="Edit Intelligence"
-                          >
-                            <Pencil size={14} />
-                          </Button>
-                        )}
                       </div>
-                    </div>
-                  </motion.div>
-                ))}
-
-                {isTyping && (
-                  <div className="flex gap-4">
-                    <Avatar className="h-10 w-10 border-2 border-white shadow-md bg-slate-900 shrink-0 flex items-center justify-center text-brand">
-                      <Sparkles size={20} />
-                    </Avatar>
-                    <div className="chat-bubble-ai min-w-[120px]">
-                      {(selectedModel === "thinking" || isResearchMode) && !streamingContent && (
-                        <div className="flex items-center gap-2 text-brand mb-2 pb-2 border-b border-slate-50">
-                          <Brain size={14} className="animate-thinking" />
-                          <span className="text-[10px] font-bold uppercase tracking-wider">
-                            {isResearchMode ? "Synthesizing Knowledge..." : "Deep Reasoning..."}
-                          </span>
-                        </div>
-                      )}
-                      {streamingContent ? (
-                        <div className="prose prose-sm md:prose-base dark:prose-invert">
-                          <ReactMarkdown components={MarkdownComponents} remarkPlugins={[remarkGfm]}>{streamingContent}</ReactMarkdown>
-                        </div>
-                      ) : (
-                        <div className="flex gap-1.5 py-2">
-                          <div className="w-2 h-2 bg-brand/40 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-                          <div className="w-2 h-2 bg-brand/60 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-                          <div className="w-2 h-2 bg-brand/80 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
 
               {isCompareMode && (

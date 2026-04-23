@@ -58,4 +58,3 @@ Cortex AI is a high-performance, premium AI chat application powered by Google's
 ## 📄 License
 
 This project is licensed under the MIT License.
-
